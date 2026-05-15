@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Calm twilight sky: keeps the grey (bad-mood) side of the cloud
+         legible while letting the pink (good-mood) side glow. -->
+    <path android:pathData="M0,0h108v108h-108z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="54" android:startY="0"
+                android:endX="54" android:endY="108">
+                <item android:offset="0" android:color="#FF2E3354" />
+                <item android:offset="1" android:color="#FF1B1E30" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>

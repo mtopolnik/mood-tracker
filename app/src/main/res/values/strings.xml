@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Mood Tracker</string>
+
+    <!-- Questionnaire items, in fixed order. Items 1–6 and 7–12 form two
+         groups; the grouping is intentionally never shown as a label. -->
+    <string name="question_1">Feeling nervous, anxious, or on edge</string>
+    <string name="question_2">Worrying too much about different things</string>
+    <string name="question_3">Trouble relaxing</string>
+    <string name="question_4">Becoming easily annoyed or irritable</string>
+    <string name="question_5">Feeling afraid as if something awful might happen</string>
+    <string name="question_6">Had a sense of my heart rate increasing without physical exertion</string>
+    <string name="question_7">Feeling down, depressed, or hopeless</string>
+    <string name="question_8">Little interest or pleasure in doing things</string>
+    <string name="question_9">Felt so tired I just sat around and did nothing</string>
+    <string name="question_10">Was tearful</string>
+    <string name="question_11">Found it hard to think properly or concentrate</string>
+    <string name="question_12">Feeling bad about myself</string>
+
+    <string name="tab_today">Today</string>
+    <string name="tab_history">History</string>
+    <string name="tab_trends">Trends</string>
+
+    <string name="back">Back</string>
+    <string name="today">Today</string>
+    <string name="anxiety">Anxiety</string>
+    <string name="depression">Depression</string>
+    <string name="score_content_desc">%1$s: %2$d of %3$d</string>
+    <string name="score_content_desc_empty">%1$s: not recorded</string>
+    <string name="progress">Remaining</string>
+    <string name="progress_content_desc">%1$s: %2$d of %3$d remaining</string>
+    <string name="no_entry">No entry</string>
+    <string name="missed_summary">Missed %1$d of last 30 days</string>
+    <string name="all_caught_up">All %1$d days filled in</string>
+    <string name="trends_empty">No entries yet — fill in today to start your trend.</string>
+
+    <string name="reminder_title">How are you feeling today?</string>
+    <string name="reminder_text">Tap to fill in today\'s check-in.</string>
+    <string name="notification_channel_name">Daily reminder</string>
+    <string name="notification_permission_rationale">Allow notifications to get a daily reminder.</string>
+    <string name="enable_reminders">Enable reminders</string>
+</resources>

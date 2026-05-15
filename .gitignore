@@ -1,0 +1,30 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+
+# Local config
+local.properties
+
+# Signing — never commit the upload key or its credentials
+keystore.properties
+*.jks
+*.keystore
+
+# Android
+*.apk
+*.aab
+*.ap_
+
+# Log files
+*.log
+
+# OS
+.DS_Store
+
+# Claude Code
+.claude/
