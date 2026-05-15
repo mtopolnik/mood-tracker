@@ -6,9 +6,9 @@ import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.EditCalendar
-import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -64,7 +64,7 @@ fun MoodApp(viewModel: MoodViewModel) {
                 NavigationBarItem(
                     selected = tab == Tab.TRENDS,
                     onClick = { viewModel.selectTab(Tab.TRENDS) },
-                    icon = { Icon(Icons.Filled.ShowChart, contentDescription = null) },
+                    icon = { Icon(Icons.AutoMirrored.Filled.ShowChart, contentDescription = null) },
                     label = { Text(stringResource(R.string.tab_trends)) },
                 )
             }
