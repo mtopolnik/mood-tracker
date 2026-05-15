@@ -1,6 +1,9 @@
 package org.mtopol.moodtracker.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -15,7 +18,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import org.mtopol.moodtracker.MoodViewModel
 import org.mtopol.moodtracker.R
 import org.mtopol.moodtracker.Tab
@@ -65,10 +70,20 @@ fun MoodApp(viewModel: MoodViewModel) {
             }
         },
     ) { padding ->
-        Box(Modifier.padding(padding)) {
-            when (tab) {
-                Tab.TODAY -> {
-                    val questionnaire by viewModel.questionnaire.collectAsState()
+        when (tab) {
+            Tab.TODAY -> {
+                // Today owns the status bar itself (its header applies
+                // statusBarsPadding), so drop the top inset here — otherwise
+                // the Scaffold reserves it as empty space above the header.
+                val layoutDirection = LocalLayoutDirection.current
+                val todayPadding = PaddingValues(
+                    start = padding.calculateStartPadding(layoutDirection),
+                    end = padding.calculateEndPadding(layoutDirection),
+                    top = 0.dp,
+                    bottom = padding.calculateBottomPadding(),
+                )
+                val questionnaire by viewModel.questionnaire.collectAsState()
+                Box(Modifier.padding(todayPadding)) {
                     QuestionnaireScreen(
                         state = questionnaire,
                         onAnswer = viewModel::setAnswer,
@@ -76,14 +91,18 @@ fun MoodApp(viewModel: MoodViewModel) {
                         onBack = null,
                     )
                 }
+            }
 
-                Tab.HISTORY -> {
-                    val history by viewModel.history.collectAsState()
+            Tab.HISTORY -> {
+                val history by viewModel.history.collectAsState()
+                Box(Modifier.padding(padding)) {
                     HistoryScreen(state = history, onOpen = viewModel::openEditor)
                 }
+            }
 
-                Tab.TRENDS -> {
-                    val trends by viewModel.trends.collectAsState()
+            Tab.TRENDS -> {
+                val trends by viewModel.trends.collectAsState()
+                Box(Modifier.padding(padding)) {
                     TrendsScreen(state = trends, onRange = viewModel::setRange)
                 }
             }

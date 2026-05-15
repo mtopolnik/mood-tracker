@@ -10,18 +10,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -48,7 +48,6 @@ private val FullDate = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.getDef
  * Every choice is saved immediately (no Save button); the bottom bar shows the
  * two category gauges, always visible and updating live as items are answered.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuestionnaireScreen(
     state: QuestionnaireUiState,
@@ -60,18 +59,37 @@ fun QuestionnaireScreen(
 
     Scaffold(
         topBar = {
-            if (showBack && onBack != null) {
-                TopAppBar(
-                    title = { Text(title) },
-                    navigationIcon = {
+            // Compact custom header instead of Material TopAppBar: the latter
+            // adds a fixed ~64dp content height on top of the consumed
+            // status-bar inset, wasting space above a short two-line title.
+            // Here we only pad for the status bar, then size to the content.
+            androidx.compose.material3.Surface(
+                color = MaterialTheme.colorScheme.background,
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (showBack && onBack != null) {
                         IconButton(onClick = onBack) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = stringResource(R.string.back),
                             )
                         }
-                    },
-                )
+                    }
+                    Column {
+                        Text(title, style = MaterialTheme.typography.titleLarge)
+                        Text(
+                            state.date.format(FullDate),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
         },
         bottomBar = {
@@ -105,17 +123,6 @@ fun QuestionnaireScreen(
                 .padding(padding),
             contentPadding = PaddingValues(16.dp),
         ) {
-            item {
-                Column(Modifier.padding(bottom = 12.dp)) {
-                    Text(title, style = MaterialTheme.typography.headlineSmall)
-                    Text(
-                        state.date.format(FullDate),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
             itemsIndexed(state.answers) { index, answer ->
                 // Larger gap (and nothing else) before the first item of the
                 // second group — the grouping is never labelled.
