@@ -5,9 +5,12 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Mood cloud, centred in the adaptive-icon safe zone. The fill runs
-         diagonally from grey (bottom-left = low mood) to pink
-         (top-right = good mood). -->
+    <!-- Mood cloud, centred in the adaptive-icon safe zone. A hard "/"
+         diagonal splits it: grey (low mood) on the upper-left side,
+         pink (good mood) on the lower-right side, no blend between them.
+         Implemented as a linear fill from top-left to bottom-right with
+         both colour stops doubled at offset 0.5, so there is no actual
+         gradient: just a crisp "/" colour-change line. -->
     <group
         android:translateX="20.4"
         android:translateY="20.4"
@@ -17,10 +20,11 @@
             <aapt:attr name="android:fillColor">
                 <gradient
                     android:type="linear"
-                    android:startX="2" android:startY="20"
-                    android:endX="22" android:endY="4">
+                    android:startX="4" android:startY="4"
+                    android:endX="20" android:endY="20">
                     <item android:offset="0" android:color="#FF8C929B" />
-                    <item android:offset="0.55" android:color="#FFCB91AC" />
+                    <item android:offset="0.5" android:color="#FF8C929B" />
+                    <item android:offset="0.5" android:color="#FFF48FB1" />
                     <item android:offset="1" android:color="#FFF48FB1" />
                 </gradient>
             </aapt:attr>
