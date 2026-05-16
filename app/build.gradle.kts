@@ -29,6 +29,7 @@ android {
         targetSdk = 36
         versionCode = 2
         versionName = "1.1"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
@@ -70,6 +71,13 @@ android {
     buildFeatures {
         compose = true
     }
+
+    // Ship the exported Room schema JSONs (room.schemaLocation, below) as
+    // androidTest assets so MigrationTestHelper can load each version's
+    // baseline on-device.
+    sourceSets {
+        getByName("androidTest").assets.srcDir("$projectDir/schemas")
+    }
 }
 
 // Export the Room schema so future migrations have a baseline to diff against.
@@ -84,6 +92,25 @@ tasks.withType<Test> {
 }
 
 dependencies {
+    constraints {
+        // The rationale lives in because() so it travels with the resolution
+        // graph (visible in `dependencyInsight`), not just in source comments —
+        // this pin looks unused (no app code touches serialization) and its
+        // only failure mode is a device-only androidTest, so it is dangerously
+        // easy to delete without it.
+        implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.1") {
+            because(
+                "room-migration 2.8.4 (MigrationTestHelper) pulls " +
+                    "kotlinx-serialization-json 1.8.1, while androidx.lifecycle/" +
+                    "savedstate pin serialization-core to 1.7.3. AGP consistent " +
+                    "resolution stamps 1.7.3 onto the androidTest classpath, so " +
+                    "json 1.8.1 runs against core 1.7.3 and the Room schema " +
+                    "parser dies with AbstractMethodError. Keep until Room and " +
+                    "androidx.lifecycle agree on a serialization-core version.",
+            )
+        }
+    }
+
     implementation(platform("androidx.compose:compose-bom:2026.03.00"))
     implementation("androidx.core:core-ktx:1.18.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
@@ -111,4 +138,13 @@ dependencies {
     // Test-only: the real org.json so MoodBackup's untrusted-import parser can
     // be unit-tested on the JVM (the android.jar stub throws). Not shipped.
     testImplementation("org.json:json:20240303")
+
+    // Instrumented migration-correctness harness (device/emulator only).
+    // room-testing provides MigrationTestHelper, which validates that each
+    // registered Migration actually transforms vN into the exported vN+1
+    // schema. Run via `./gradlew connectedDebugAndroidTest`.
+    androidTestImplementation("androidx.room:room-testing:2.8.4")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test:core-ktx:1.6.1")
 }

@@ -121,12 +121,22 @@ change must:
    (`exportSchema = true`; `schemas/` is intentionally **not** gitignored — it
    is the baseline migrations diff against).
 
-`MigrationGuardTest` (a normal `testDebugUnitTest`) fails the build if a
-version bump lands without the exported schema or a registered migration. It
-does **not** prove a migration is *correct* — before any release that bumps the
-version, a migration must also be validated with an instrumented
-`androidx.room.testing.MigrationTestHelper` test on a device/emulator. Never
-edit the committed entity/`1.json` baseline in place; never re-add
+Two layers enforce this:
+
+- `MigrationGuardTest` — a normal `testDebugUnitTest`; fails the build if a
+  version bump lands without the exported schema or a registered migration
+  (process check, runs in plain CI, no device).
+- `MigrationTest` (`app/src/androidTest/`, `room-testing`
+  `MigrationTestHelper`) — proves a registered migration actually transforms
+  the old DB into the new schema against real SQLite. Run with `./gradlew
+  connectedDebugAndroidTest` (needs a device/emulator); the exported `schemas/`
+  are wired in as androidTest assets via `sourceSets`. Its
+  `allMigrationsProduceTheCurrentSchema` covers the whole 1→…→VERSION chain;
+  add a per-step data-preservation test for every `DB_VERSION` bump (template
+  in the test's KDoc). This is a mandatory pre-release step for any
+  version-bumping change.
+
+Never edit the committed entity/`1.json` baseline in place; never re-add
 `fallbackToDestructiveMigration`.
 
 ## Testing
@@ -135,5 +145,9 @@ edit the committed entity/`1.json` baseline in place; never re-add
 `InterpolationTest`, `DateRangeTest`), the untrusted backup parser
 (`MoodBackupTest`), and the schema-migration tripwire (`MigrationGuardTest`) —
 JUnit4 `@Test` + `kotlin.test` assertions, matching the sibling project's
-convention. Migration *correctness* (vs. the tripwire's process check) requires
-an instrumented `MigrationTestHelper` test and is not part of this task.
+convention.
+
+`./gradlew connectedDebugAndroidTest` runs the instrumented `MigrationTest`
+(`androidx.test` + `room-testing`, JUnit4 `AndroidJUnit4` + JUnit assertions
+since `kotlin.test` is JVM-test only) on a connected device/emulator — the
+migration-*correctness* layer above the JVM tripwire.
