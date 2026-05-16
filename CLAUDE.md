@@ -68,8 +68,9 @@ Single `ComponentActivity` (`MainActivity`) →
 - **`ui/`** — `CloudyApp` (Scaffold + NavigationBar), `QuestionnaireScreen` (Today
   tab *and* the full-screen past-day editor; bottom bar = the two always-visible
   `ScorePill` gauges, no Save button), `HistoryScreen`, `TrendsScreen` (Vico),
-  `BackupScreen` (Backup tab: share-sheet export via `FileProvider`, SAF
-  `OpenDocument` import, Auto Backup explainer), `components/` (`ScoreSelector`,
+  `ManageScreen` (Manage tab: app version + Play Store listing shortcut for
+  updates; share-sheet export via `FileProvider`, SAF `OpenDocument` import,
+  Auto Backup explainer), `components/` (`ScoreSelector`,
   `ScorePill`), `theme/` (dynamic color + fixed series colors).
 - **`reminder/`** — WorkManager daily local notification: `ReminderScheduler`
   enqueues a self-rescheduling one-shot for the next 20:00; `ReminderWorker`
@@ -97,7 +98,7 @@ two ways:
   `android:dataExtractionRules` (API 31+), scoped to `mood.db`. Restores
   automatically on a new device. Safe because `CloudyDatabase` uses
   `JournalMode.TRUNCATE` (single file, no torn `-wal`).
-- **Export/import** — user-driven, via the Backup tab. Export writes
+- **Export/import** — user-driven, via the Manage tab. Export writes
   `CloudyBackup` JSON to `cacheDir/exports/` and shares it through a
   `FileProvider` (`${applicationId}.fileprovider`, see `res/xml/file_paths.xml`)
   ACTION_SEND chooser — the reliable route to Drive/email. Import picks a file

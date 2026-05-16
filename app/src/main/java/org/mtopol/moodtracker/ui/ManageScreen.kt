@@ -1,5 +1,6 @@
 package org.mtopol.moodtracker.ui
 
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
@@ -15,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -23,12 +25,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -38,14 +42,19 @@ import java.io.File
 import java.time.LocalDate
 
 /**
- * "Backup" tab. Two user-driven actions plus an explainer for the automatic
- * cloud backup that runs without any UI. Export hands a JSON file to the system
- * share sheet (the reliable route to Drive/email/etc.); import reads a file
- * picked through the Storage Access Framework. The file is validated on import,
- * so the picker deliberately accepts any type — Drive often mislabels JSON.
+ * "Manage" tab. App info (version + a shortcut to the Play Store listing for
+ * updates) plus data management: the two user-driven backup actions and an
+ * explainer for the automatic cloud backup that runs without any UI. Export
+ * hands a JSON file to the system share sheet (the reliable route to
+ * Drive/email/etc.); import reads a file picked through the Storage Access
+ * Framework. The file is validated on import, so the picker deliberately
+ * accepts any type — Drive often mislabels JSON.
+ *
+ * The Play Store shortcut hands off to an external app/browser via an Intent,
+ * so it needs no `INTERNET` permission and keeps the app's no-network posture.
  */
 @Composable
-fun BackupScreen(
+fun ManageScreen(
     onExportJson: suspend () -> String,
     onImportJson: suspend (String) -> ImportOutcome,
 ) {
@@ -87,14 +96,31 @@ fun BackupScreen(
     ) {
         Column {
             Text(
-                stringResource(R.string.tab_backup),
+                stringResource(R.string.tab_manage),
                 style = MaterialTheme.typography.headlineSmall,
             )
             Text(
-                stringResource(R.string.backup_subtitle),
+                stringResource(R.string.manage_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+
+        val versionLabel = remember(context) { appVersionLabel(context) }
+        ActionCard(
+            title = stringResource(R.string.app_section_title),
+            body = stringResource(R.string.version_label, versionLabel),
+        ) {
+            OutlinedButton(
+                onClick = { openPlayStoreListing(context) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(Icons.Filled.OpenInNew, contentDescription = null)
+                Text(
+                    stringResource(R.string.open_play_store),
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
         }
 
         ActionCard(
@@ -210,6 +236,37 @@ private fun writeExportFile(context: Context, json: String): android.net.Uri {
     val file = File(dir, "cloudy-backup-${LocalDate.now()}.json")
     file.writeText(json)
     return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+}
+
+/**
+ * `versionName (versionCode)`, read from the installed package so it always
+ * matches the running build. minSdk 30 ⇒ [android.content.pm.PackageInfo.getLongVersionCode]
+ * is always available. Falls back to "—" if the package can't be queried
+ * (should never happen for our own package).
+ */
+private fun appVersionLabel(context: Context): String = runCatching {
+    val info = context.packageManager.getPackageInfo(context.packageName, 0)
+    "${info.versionName} (${info.longVersionCode})"
+}.getOrDefault("—")
+
+/**
+ * Opens this app's Play Store page. Tries the Play app first (`market://`) and
+ * falls back to the web listing if Play isn't installed. This is an external
+ * hand-off, so it requires no network permission of our own.
+ */
+private fun openPlayStoreListing(context: Context) {
+    val id = context.packageName
+    val play = Intent(Intent.ACTION_VIEW, "market://details?id=$id".toUri())
+    try {
+        context.startActivity(play)
+    } catch (e: ActivityNotFoundException) {
+        context.startActivity(
+            Intent(
+                Intent.ACTION_VIEW,
+                "https://play.google.com/store/apps/details?id=$id".toUri(),
+            ),
+        )
+    }
 }
 
 private fun Context.toast(message: String) =

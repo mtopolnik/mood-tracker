@@ -20,7 +20,7 @@
     <string name="tab_today">Today</string>
     <string name="tab_history">History</string>
     <string name="tab_trends">Trends</string>
-    <string name="tab_backup">Backup</string>
+    <string name="tab_manage">Manage</string>
 
     <string name="back">Back</string>
     <string name="today">Today</string>
@@ -35,7 +35,10 @@
     <string name="all_caught_up">All %1$d days filled in</string>
     <string name="trends_empty">No entries yet — fill in today to start your trend.</string>
 
-    <string name="backup_subtitle">Your entries live only on this phone. Keep a copy elsewhere so a lost or replaced device doesn\'t lose your history.</string>
+    <string name="manage_subtitle">App info and updates, plus keeping your data safe. Your entries live only on this phone, so keep a copy elsewhere.</string>
+    <string name="app_section_title">App</string>
+    <string name="version_label">Version %1$s</string>
+    <string name="open_play_store">View in Play Store</string>
     <string name="export_title">Export your data</string>
     <string name="export_desc">Save every entry to a file you can store anywhere or move to a new phone.</string>
     <string name="export_button">Export data</string>

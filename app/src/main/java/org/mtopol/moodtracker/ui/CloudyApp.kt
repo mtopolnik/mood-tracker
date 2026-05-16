@@ -7,9 +7,9 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.EditCalendar
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -69,10 +69,10 @@ fun CloudyApp(viewModel: CloudyViewModel) {
                     label = { Text(stringResource(R.string.tab_trends)) },
                 )
                 NavigationBarItem(
-                    selected = tab == Tab.BACKUP,
-                    onClick = { viewModel.selectTab(Tab.BACKUP) },
-                    icon = { Icon(Icons.Filled.Backup, contentDescription = null) },
-                    label = { Text(stringResource(R.string.tab_backup)) },
+                    selected = tab == Tab.MANAGE,
+                    onClick = { viewModel.selectTab(Tab.MANAGE) },
+                    icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                    label = { Text(stringResource(R.string.tab_manage)) },
                 )
             }
         },
@@ -114,9 +114,9 @@ fun CloudyApp(viewModel: CloudyViewModel) {
                 }
             }
 
-            Tab.BACKUP -> {
+            Tab.MANAGE -> {
                 Box(Modifier.padding(padding)) {
-                    BackupScreen(
+                    ManageScreen(
                         onExportJson = viewModel::exportJson,
                         onImportJson = viewModel::importJson,
                     )

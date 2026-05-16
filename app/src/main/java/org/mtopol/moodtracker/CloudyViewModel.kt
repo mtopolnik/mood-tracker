@@ -33,7 +33,7 @@ import java.time.LocalDate
 
 const val HISTORY_DAYS = 30
 
-enum class Tab { TODAY, HISTORY, TRENDS, BACKUP }
+enum class Tab { TODAY, HISTORY, TRENDS, MANAGE }
 
 /** Outcome of an import, surfaced to the user as a single short message. */
 sealed interface ImportOutcome {
