@@ -207,7 +207,7 @@ private fun ActionCard(
  */
 private fun writeExportFile(context: Context, json: String): android.net.Uri {
     val dir = File(context.cacheDir, "exports").apply { mkdirs() }
-    val file = File(dir, "mood-backup-${LocalDate.now()}.json")
+    val file = File(dir, "cloudy-backup-${LocalDate.now()}.json")
     file.writeText(json)
     return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 }

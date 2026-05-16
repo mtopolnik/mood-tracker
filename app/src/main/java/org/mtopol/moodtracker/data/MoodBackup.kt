@@ -12,7 +12,7 @@ import java.time.format.DateTimeParseException
 /** One day's answers in a portable, schema-independent shape (ISO date + 12 ints). */
 data class BackupDay(val date: LocalDate, val answers: List<Int>)
 
-/** Thrown when an imported file is not a readable Mood Tracker export. */
+/** Thrown when an imported file is not a readable Cloudy export. */
 class BackupFormatException(message: String) : Exception(message)
 
 /**
@@ -26,8 +26,15 @@ class BackupFormatException(message: String) : Exception(message)
  */
 object MoodBackup {
 
-    /** Identifies the file as ours; a foreign JSON is rejected, not half-read. */
-    const val FORMAT = "moodtracker"
+    /**
+     * Identifies the file as ours; a foreign JSON is rejected, not half-read.
+     * This is an on-disk identity tag, independent of the app's display name.
+     * It was set while the backup feature was still unreleased (no exported
+     * files existed), so it could be named freely. **From the first release
+     * onward it must never change** — every shipped export carries this exact
+     * value and a mismatch makes the file unimportable.
+     */
+    const val FORMAT = "cloudy"
 
     /** Bump when the shape changes; [decode] refuses a newer version than it knows. */
     const val VERSION = 1
@@ -59,7 +66,7 @@ object MoodBackup {
             throw BackupFormatException("Not a JSON document")
         }
         if (root.optString("format") != FORMAT) {
-            throw BackupFormatException("Not a Mood Tracker export")
+            throw BackupFormatException("Not a Cloudy export")
         }
         if (root.optInt("version", 1) > VERSION) {
             throw BackupFormatException("This file was made by a newer app version")

@@ -47,7 +47,7 @@ class MoodBackupTest {
     @Test
     fun toleratesUnknownAndMissingTopLevelKeys() {
         // No "exportedAt", plus an unknown key — still valid.
-        val json = """{"format":"moodtracker","extra":true,
+        val json = """{"format":"cloudy","extra":true,
             "days":[{"date":"2026-01-01","answers":${complete}}]}"""
         assertEquals(LocalDate.parse("2026-01-01"), MoodBackup.decode(json).single().date)
     }
@@ -67,7 +67,7 @@ class MoodBackupTest {
     @Test
     fun rejectsNewerVersion() {
         assertFailsWith<BackupFormatException> {
-            MoodBackup.decode("""{"format":"moodtracker","version":99,"days":[]}""")
+            MoodBackup.decode("""{"format":"cloudy","version":99,"days":[]}""")
         }
     }
 
@@ -75,7 +75,7 @@ class MoodBackupTest {
     fun rejectsWrongAnswerCount() {
         assertFailsWith<BackupFormatException> {
             MoodBackup.decode(
-                """{"format":"moodtracker","days":[{"date":"2026-01-01","answers":[0,1,2]}]}""",
+                """{"format":"cloudy","days":[{"date":"2026-01-01","answers":[0,1,2]}]}""",
             )
         }
     }
@@ -85,7 +85,7 @@ class MoodBackupTest {
         val bad = complete.toMutableList().also { it[3] = 7 }
         assertFailsWith<BackupFormatException> {
             MoodBackup.decode(
-                """{"format":"moodtracker","days":[{"date":"2026-01-01","answers":${bad}}]}""",
+                """{"format":"cloudy","days":[{"date":"2026-01-01","answers":${bad}}]}""",
             )
         }
     }
@@ -94,7 +94,7 @@ class MoodBackupTest {
     fun rejectsUnparseableDate() {
         assertFailsWith<BackupFormatException> {
             MoodBackup.decode(
-                """{"format":"moodtracker","days":[{"date":"yesterday","answers":${complete}}]}""",
+                """{"format":"cloudy","days":[{"date":"yesterday","answers":${complete}}]}""",
             )
         }
     }
@@ -102,7 +102,7 @@ class MoodBackupTest {
     @Test
     fun rejectsMissingAnswers() {
         assertFailsWith<BackupFormatException> {
-            MoodBackup.decode("""{"format":"moodtracker","days":[{"date":"2026-01-01"}]}""")
+            MoodBackup.decode("""{"format":"cloudy","days":[{"date":"2026-01-01"}]}""")
         }
     }
 }

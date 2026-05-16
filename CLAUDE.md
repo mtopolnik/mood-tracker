@@ -15,8 +15,14 @@ No global `gradle`/`kotlinc` — always use the wrapper (Gradle 9.3.1, pinned).
 
 ## Project Overview
 
-**Mood Tracker** — a backend-free Android app for a daily 12-item mood
-questionnaire (each item 0–3). Items 1–6 sum to an *anxiety* score, 7–12 to a
+**Cloudy** (formerly "Mood Tracker") — a backend-free Android app for a daily
+12-item mood questionnaire (each item 0–3).
+
+> Rename note: the user-facing name and the `MoodBackup.FORMAT` tag (renamed
+> while the backup feature was still unreleased) are now "cloudy"/"Cloudy". The
+> `applicationId`, `namespace`, package `org.mtopol.moodtracker`, and theme
+> symbol names deliberately stay unchanged — `applicationId` is the permanent
+> Play Store identity and the rest are internal-only. Items 1–6 sum to an *anxiety* score, 7–12 to a
 *depression* score (each 0–18). Opens on today's questionnaire; every choice is
 persisted immediately (no Save button) while a bottom bar shows the two category
 gauges live; a day only *counts* once all 12 items are answered. The last 30
