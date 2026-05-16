@@ -3,7 +3,9 @@ package org.mtopol.moodtracker
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -12,6 +14,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.mtopol.moodtracker.data.BackupFormatException
+import org.mtopol.moodtracker.data.MoodBackup
 import org.mtopol.moodtracker.data.MoodDatabase
 import org.mtopol.moodtracker.data.MoodRepository
 import org.mtopol.moodtracker.domain.ChartRange
@@ -24,11 +28,19 @@ import org.mtopol.moodtracker.domain.interpolateDaily
 import org.mtopol.moodtracker.domain.isComplete
 import org.mtopol.moodtracker.domain.resolveRange
 import org.mtopol.moodtracker.reminder.ReminderScheduler
+import java.time.Instant
 import java.time.LocalDate
 
 const val HISTORY_DAYS = 30
 
-enum class Tab { TODAY, HISTORY, TRENDS }
+enum class Tab { TODAY, HISTORY, TRENDS, BACKUP }
+
+/** Outcome of an import, surfaced to the user as a single short message. */
+sealed interface ImportOutcome {
+    data class Success(val count: Int) : ImportOutcome
+    data object Empty : ImportOutcome
+    data class Failure(val reason: String) : ImportOutcome
+}
 
 data class QuestionnaireUiState(
     val date: LocalDate,
@@ -174,6 +186,31 @@ class MoodViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setRange(range: ChartRange) {
         _range.value = range
+    }
+
+    /** Serialises every stored day to the shareable backup JSON. */
+    suspend fun exportJson(): String = withContext(Dispatchers.IO) {
+        MoodBackup.encode(repo.exportDays(), Instant.now().toString())
+    }
+
+    /**
+     * Parses an untrusted backup file and, if valid and non-empty, restores it.
+     * History/Trends recompute from their Flows automatically; the questionnaire
+     * is a one-shot snapshot, so a restored "today" is reloaded explicitly.
+     */
+    suspend fun importJson(text: String): ImportOutcome = withContext(Dispatchers.IO) {
+        try {
+            val days = MoodBackup.decode(text)
+            if (days.isEmpty()) {
+                ImportOutcome.Empty
+            } else {
+                val count = repo.importDays(days)
+                loadQuestionnaire(LocalDate.now())
+                ImportOutcome.Success(count)
+            }
+        } catch (e: BackupFormatException) {
+            ImportOutcome.Failure(e.message ?: "Unreadable file")
+        }
     }
 
     private fun emptyQuestionnaire(date: LocalDate) = QuestionnaireUiState(

@@ -27,6 +27,11 @@ abstract class MoodDatabase : RoomDatabase() {
                     "mood.db",
                 )
                     .fallbackToDestructiveMigration(dropAllTables = true)
+                    // TRUNCATE (not the default WAL) keeps everything in the
+                    // single mood.db file with no -wal sidecar, so Android Auto
+                    // Backup can never capture a torn mid-write database. The
+                    // write-throughput cost is irrelevant at one tiny row/tap.
+                    .setJournalMode(RoomDatabase.JournalMode.TRUNCATE)
                     .build()
                     .also { instance = it }
             }

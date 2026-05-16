@@ -108,4 +108,7 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     testImplementation(kotlin("test"))
+    // Test-only: the real org.json so MoodBackup's untrusted-import parser can
+    // be unit-tested on the JVM (the android.jar stub throws). Not shipped.
+    testImplementation("org.json:json:20240303")
 }

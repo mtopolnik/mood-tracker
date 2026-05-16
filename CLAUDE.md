@@ -49,13 +49,18 @@ Single `ComponentActivity` (`MainActivity`) →
   columns that may hold `UNANSWERED` (-1) for an in-progress day; scores **and**
   completeness are derived in the domain, never stored), `MoodDao`,
   `MoodDatabase` (v1, `fallbackToDestructiveMigration(dropAllTables = true)` —
-  pre-1.0 only), `MoodRepository` (the only Room ↔ domain boundary; returns
-  Flows).
+  pre-1.0 only; **`JournalMode.TRUNCATE`** so there is no `-wal` sidecar for
+  Auto Backup to capture mid-write), `MoodRepository` (the only Room ↔ domain
+  boundary; returns Flows; also `exportDays`/`importDays`), `MoodBackup` (the
+  portable, schema-independent JSON format — `org.json`, no production dep —
+  whose `decode` treats the file as untrusted: validates every field, caps
+  size, tolerates unknown/missing keys).
 - **`ui/`** — `MoodApp` (Scaffold + NavigationBar), `QuestionnaireScreen` (Today
   tab *and* the full-screen past-day editor; bottom bar = the two always-visible
   `ScorePill` gauges, no Save button), `HistoryScreen`, `TrendsScreen` (Vico),
-  `components/` (`ScoreSelector`, `ScorePill`), `theme/` (dynamic color + fixed
-  series colors).
+  `BackupScreen` (Backup tab: share-sheet export via `FileProvider`, SAF
+  `OpenDocument` import, Auto Backup explainer), `components/` (`ScoreSelector`,
+  `ScorePill`), `theme/` (dynamic color + fixed series colors).
 - **`reminder/`** — WorkManager daily local notification: `ReminderScheduler`
   enqueues a self-rescheduling one-shot for the next 20:00; `ReminderWorker`
   posts only if today is incomplete; `Notifications` owns the channel +
@@ -69,6 +74,27 @@ Single `ComponentActivity` (`MainActivity`) →
 - **Vico `com.patrykandpatrick.vico:compose-m3:3.1.0`** — Vico 3.x has no
   separate `:core` artifact. Chart code is isolated to `ui/TrendsScreen.kt`.
 - **WorkManager `androidx.work:work-runtime-ktx:2.11.2`**.
+- **No production JSON dependency** — backup (de)serialization uses the platform
+  `org.json`. `org.json:json` is a **test-only** dependency so `MoodBackupTest`
+  can run the parser on the JVM (the `android.jar` stub throws).
+
+## Data portability
+
+Local-only data has a single point of failure (lost/replaced phone), addressed
+two ways:
+
+- **Auto Backup** — `android:fullBackupContent` (API 30) +
+  `android:dataExtractionRules` (API 31+), scoped to `mood.db`. Restores
+  automatically on a new device. Safe because `MoodDatabase` uses
+  `JournalMode.TRUNCATE` (single file, no torn `-wal`).
+- **Export/import** — user-driven, via the Backup tab. Export writes
+  `MoodBackup` JSON to `cacheDir/exports/` and shares it through a
+  `FileProvider` (`${applicationId}.fileprovider`, see `res/xml/file_paths.xml`)
+  ACTION_SEND chooser — the reliable route to Drive/email. Import picks a file
+  via SAF (`OpenDocument`, accepts `*/*` since Drive mislabels JSON; the content
+  is validated regardless) and bulk-upserts by epoch-day (same-day rows
+  overwritten, others kept; a restored *today* triggers a questionnaire
+  reload).
 
 ## Known v1 limitations
 

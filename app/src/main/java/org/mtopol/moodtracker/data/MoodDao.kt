@@ -12,6 +12,14 @@ interface MoodDao {
     @Upsert
     suspend fun upsert(entry: MoodEntry)
 
+    /** Every stored day, oldest first — the source for a full export. */
+    @Query("SELECT * FROM mood_entry ORDER BY epochDay ASC")
+    suspend fun getAll(): List<MoodEntry>
+
+    /** Bulk upsert used by import/restore; same-day rows are replaced. */
+    @Upsert
+    suspend fun upsertAll(entries: List<MoodEntry>)
+
     @Query("SELECT * FROM mood_entry WHERE epochDay = :epochDay LIMIT 1")
     suspend fun getByDay(epochDay: Long): MoodEntry?
 

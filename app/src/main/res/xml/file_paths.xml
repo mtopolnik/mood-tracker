@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FileProvider mapping for the share-sheet export: only the private
+     cache/exports/ directory is exposed, via a short-lived content:// URI. -->
+<paths>
+    <cache-path name="exports" path="exports/" />
+</paths>

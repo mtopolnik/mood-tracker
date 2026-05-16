@@ -50,4 +50,19 @@ class MoodRepository(private val dao: MoodDao) {
 
     suspend fun upsert(date: LocalDate, answers: List<Int>) =
         dao.upsert(moodEntryOf(date.toEpochDay(), answers))
+
+    /** All stored days as the portable backup model (oldest first). */
+    suspend fun exportDays(): List<BackupDay> =
+        dao.getAll().map { BackupDay(LocalDate.ofEpochDay(it.epochDay), it.answers()) }
+
+    /**
+     * Restores a backup. A bulk upsert keyed by epoch-day means a day present in
+     * both the file and the DB is overwritten by the file, while days only on
+     * the device are untouched — correct for both "fresh phone" and "restore
+     * over existing". Returns the number of days written.
+     */
+    suspend fun importDays(days: List<BackupDay>): Int {
+        dao.upsertAll(days.map { moodEntryOf(it.date.toEpochDay(), it.answers) })
+        return days.size
+    }
 }

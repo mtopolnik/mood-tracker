@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
+import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material3.Icon
@@ -67,6 +68,12 @@ fun MoodApp(viewModel: MoodViewModel) {
                     icon = { Icon(Icons.AutoMirrored.Filled.ShowChart, contentDescription = null) },
                     label = { Text(stringResource(R.string.tab_trends)) },
                 )
+                NavigationBarItem(
+                    selected = tab == Tab.BACKUP,
+                    onClick = { viewModel.selectTab(Tab.BACKUP) },
+                    icon = { Icon(Icons.Filled.Backup, contentDescription = null) },
+                    label = { Text(stringResource(R.string.tab_backup)) },
+                )
             }
         },
     ) { padding ->
@@ -104,6 +111,15 @@ fun MoodApp(viewModel: MoodViewModel) {
                 val trends by viewModel.trends.collectAsState()
                 Box(Modifier.padding(padding)) {
                     TrendsScreen(state = trends, onRange = viewModel::setRange)
+                }
+            }
+
+            Tab.BACKUP -> {
+                Box(Modifier.padding(padding)) {
+                    BackupScreen(
+                        onExportJson = viewModel::exportJson,
+                        onImportJson = viewModel::importJson,
+                    )
                 }
             }
         }
