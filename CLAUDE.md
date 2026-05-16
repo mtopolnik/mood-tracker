@@ -48,9 +48,11 @@ Single `ComponentActivity` (`MainActivity`) →
 - **`data/`** — Room: `MoodEntry` (PK = `LocalDate.toEpochDay()`, 12 `Int`
   columns that may hold `UNANSWERED` (-1) for an in-progress day; scores **and**
   completeness are derived in the domain, never stored), `MoodDao`,
-  `MoodDatabase` (v1, `fallbackToDestructiveMigration(dropAllTables = true)` —
-  pre-1.0 only; **`JournalMode.TRUNCATE`** so there is no `-wal` sidecar for
-  Auto Backup to capture mid-write), `MoodRepository` (the only Room ↔ domain
+  `MoodDatabase` (**non-destructive**: single-source `VERSION` + ordered
+  `MIGRATIONS`, no `fallbackToDestructiveMigration` — a missing migration fails
+  loudly instead of wiping real user data; **`JournalMode.TRUNCATE`** so there
+  is no `-wal` sidecar for Auto Backup to capture mid-write), `MoodRepository`
+  (the only Room ↔ domain
   boundary; returns Flows; also `exportDays`/`importDays`), `MoodBackup` (the
   portable, schema-independent JSON format — `org.json`, no production dep —
   whose `decode` treats the file as untrusted: validates every field, caps
@@ -105,10 +107,33 @@ two ways:
 - Each choice upserts the full day; rapid taps rely on last-write-wins on the
   day's single row (the in-memory `StateFlow` is the source of truth and the DB
   converges — no per-write ordering guarantee).
-- Pre-1.0 schema changes are destructive (bump `MoodDatabase.version`).
+
+## Schema migrations (the app has live users — data is never wiped)
+
+There is real user data, so destructive migration is **gone**. Every schema
+change must:
+
+1. bump `DB_VERSION` in `MoodDatabase.kt`;
+2. add a `Migration(n-1, n)` to `MoodDatabase.MIGRATIONS` (ordered; an entry,
+   once shipped, is never edited or removed);
+3. build, then **commit** the regenerated
+   `app/schemas/org.mtopol.moodtracker.data.MoodDatabase/<version>.json`
+   (`exportSchema = true`; `schemas/` is intentionally **not** gitignored — it
+   is the baseline migrations diff against).
+
+`MigrationGuardTest` (a normal `testDebugUnitTest`) fails the build if a
+version bump lands without the exported schema or a registered migration. It
+does **not** prove a migration is *correct* — before any release that bumps the
+version, a migration must also be validated with an instrumented
+`androidx.room.testing.MigrationTestHelper` test on a device/emulator. Never
+edit the committed entity/`1.json` baseline in place; never re-add
+`fallbackToDestructiveMigration`.
 
 ## Testing
 
-`./gradlew testDebugUnitTest` covers `ScoringTest`, `InterpolationTest`,
-`DateRangeTest` (JUnit4 `@Test` + `kotlin.test` assertions, matching the sibling
-project's convention).
+`./gradlew testDebugUnitTest` covers the domain (`ScoringTest`,
+`InterpolationTest`, `DateRangeTest`), the untrusted backup parser
+(`MoodBackupTest`), and the schema-migration tripwire (`MigrationGuardTest`) —
+JUnit4 `@Test` + `kotlin.test` assertions, matching the sibling project's
+convention. Migration *correctness* (vs. the tripwire's process check) requires
+an instrumented `MigrationTestHelper` test and is not part of this task.
