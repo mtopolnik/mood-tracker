@@ -160,6 +160,11 @@ private fun MoodChart(state: TrendsUiState) {
             bottomAxis = HorizontalAxis.rememberBottom(valueFormatter = xFormatter),
         ),
         modelProducer = modelProducer,
+        // No enter/diff animation: the chart is rebuilt from a fresh
+        // modelProducer every time the Trends tab is entered, so Vico's
+        // default spec would replay a grow-in animation on each visit.
+        // null applies the data instantly.
+        animationSpec = null,
         // The chart must always show the whole selected range at once. Vico's
         // host defaults to a horizontally scrollable viewport at fixed (1x)
         // zoom, so a wide range (e.g. 1Y / All) overflows and is only reachable
