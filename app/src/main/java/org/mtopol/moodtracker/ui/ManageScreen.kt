@@ -135,20 +135,22 @@ fun ManageScreen(
                             context.toast(context.getString(R.string.export_failed))
                             return@launch
                         }
-                        val uri = withContext(Dispatchers.IO) {
+                        val exported = withContext(Dispatchers.IO) {
                             runCatching { writeExportFile(context, json) }.getOrNull()
                         }
-                        if (uri == null) {
+                        if (exported == null) {
                             context.toast(context.getString(R.string.export_failed))
                             return@launch
                         }
                         val share = Intent(Intent.ACTION_SEND).apply {
                             type = "application/json"
-                            putExtra(Intent.EXTRA_STREAM, uri)
-                            putExtra(
-                                Intent.EXTRA_SUBJECT,
-                                context.getString(R.string.export_share_title),
-                            )
+                            putExtra(Intent.EXTRA_STREAM, exported.uri)
+                            // Drive (and other save targets) use EXTRA_SUBJECT as
+                            // the suggested filename; EXTRA_TITLE drives the
+                            // Sharesheet preview label. Both must be the real
+                            // file name so the date + .json survive the share.
+                            putExtra(Intent.EXTRA_SUBJECT, exported.name)
+                            putExtra(Intent.EXTRA_TITLE, exported.name)
                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                         }
                         runCatching {
@@ -226,16 +228,23 @@ private fun ActionCard(
     }
 }
 
+/** A shared export file: the readable `content://` URI plus its real name. */
+private class ExportFile(val uri: android.net.Uri, val name: String)
+
 /**
  * Writes the export to a private cache file and returns a `content://` URI the
- * share target can read (via [FileProvider], authority `<pkg>.fileprovider`).
- * One fixed filename per day keeps the cache from accumulating copies.
+ * share target can read (via [FileProvider], authority `<pkg>.fileprovider`)
+ * together with the file's name. One fixed filename per day keeps the cache
+ * from accumulating copies; the name is also handed to the share intent so
+ * targets like Drive keep the date and `.json` extension.
  */
-private fun writeExportFile(context: Context, json: String): android.net.Uri {
+private fun writeExportFile(context: Context, json: String): ExportFile {
     val dir = File(context.cacheDir, "exports").apply { mkdirs() }
-    val file = File(dir, "cloudy-backup-${LocalDate.now()}.json")
+    val name = "cloudy-backup-${LocalDate.now()}.json"
+    val file = File(dir, name)
     file.writeText(json)
-    return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    return ExportFile(uri, name)
 }
 
 /**
