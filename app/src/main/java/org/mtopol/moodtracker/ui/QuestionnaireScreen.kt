@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,6 +42,9 @@ import java.util.Locale
 private val TitleDate = DateTimeFormatter.ofPattern("EEEE", Locale.getDefault())
 private val FullDate = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.getDefault())
 
+/** Soft cap on the day's note — it is meant to be a short remark, not a journal. */
+private const val NOTE_MAX_LEN = 500
+
 /**
  * The 12-item form for a given day. Used both as the Today tab ([showBack] =
  * false) and as the full-screen editor for a past day ([showBack] = true).
@@ -52,6 +56,7 @@ private val FullDate = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.getDef
 fun QuestionnaireScreen(
     state: QuestionnaireUiState,
     onAnswer: (Int, Int) -> Unit,
+    onNote: (String) -> Unit,
     showBack: Boolean,
     onBack: (() -> Unit)?,
 ) {
@@ -135,6 +140,22 @@ fun QuestionnaireScreen(
                     Spacer(Modifier.height(8.dp))
                     ScoreSelector(value = answer, onValue = { onAnswer(index, it) })
                 }
+            }
+
+            item {
+                Spacer(Modifier.height(36.dp))
+                OutlinedTextField(
+                    value = state.note,
+                    // Drop edits past the soft cap rather than truncating
+                    // silently mid-type: the field just stops accepting more.
+                    onValueChange = { if (it.length <= NOTE_MAX_LEN) onNote(it) },
+                    label = { Text(stringResource(R.string.note_label)) },
+                    placeholder = { Text(stringResource(R.string.note_placeholder)) },
+                    minLines = 3,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                // Breathing room so the field clears the bottom score bar.
+                Spacer(Modifier.height(16.dp))
             }
         }
     }

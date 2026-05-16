@@ -9,6 +9,8 @@ import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -74,6 +76,41 @@ class MigrationTest {
             *CloudyDatabase.MIGRATIONS,
         ).use { db ->
             assertEquals(CloudyDatabase.VERSION, db.version)
+        }
+    }
+
+    /**
+     * v1→v2 data preservation: a fully-answered v1 row must survive the
+     * `ADD COLUMN note` migration unchanged, with the new `note` reading back
+     * as SQL NULL (a day with no remark) — proving existing users keep every
+     * answer when they upgrade into the note feature.
+     */
+    @Test
+    fun migrate1To2_keepsExistingDays() {
+        helper.createDatabase(TEST_DB, 1).apply {
+            execSQL(
+                "INSERT INTO mood_entry " +
+                    "(epochDay, q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12) " +
+                    "VALUES (7, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3)",
+            )
+            close()
+        }
+        helper.runMigrationsAndValidate(
+            TEST_DB,
+            2,
+            true,
+            *CloudyDatabase.MIGRATIONS,
+        ).use { db ->
+            db.query(
+                "SELECT q1, q6, q12, note FROM mood_entry WHERE epochDay = 7",
+            ).use { c ->
+                assertTrue(c.moveToFirst())
+                assertEquals(0, c.getInt(0)) // q1
+                assertEquals(1, c.getInt(1)) // q6
+                assertEquals(3, c.getInt(2)) // q12
+                assertTrue(c.isNull(3))      // note back-filled as NULL
+                assertNull(c.getString(3))
+            }
         }
     }
 

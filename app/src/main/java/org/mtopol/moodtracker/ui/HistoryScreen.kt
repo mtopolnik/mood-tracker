@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.mtopol.moodtracker.HistoryRow
 import org.mtopol.moodtracker.HistoryUiState
@@ -87,17 +88,31 @@ private fun PresentRow(row: HistoryRow, onOpen: (LocalDate) -> Unit) {
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
         ),
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            DateLabel(row.date)
-            Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                ScorePill(stringResource(R.string.anxiety), row.anxiety, anxietyColor())
-                ScorePill(stringResource(R.string.depression), row.depression, depressionColor())
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                DateLabel(row.date)
+                Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                    ScorePill(stringResource(R.string.anxiety), row.anxiety, anxietyColor())
+                    ScorePill(stringResource(R.string.depression), row.depression, depressionColor())
+                }
+            }
+            if (!row.note.isNullOrBlank()) {
+                Text(
+                    row.note,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }

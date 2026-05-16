@@ -9,8 +9,11 @@ import org.mtopol.moodtracker.domain.UNANSWERED
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 
-/** One day's answers in a portable, schema-independent shape (ISO date + 12 ints). */
-data class BackupDay(val date: LocalDate, val answers: List<Int>)
+/**
+ * One day's answers in a portable, schema-independent shape (ISO date + 12
+ * ints). [note] is the optional free-form remark; null when absent.
+ */
+data class BackupDay(val date: LocalDate, val answers: List<Int>, val note: String? = null)
 
 /** Thrown when an imported file is not a readable Cloudy export. */
 class BackupFormatException(message: String) : Exception(message)
@@ -36,20 +39,32 @@ object CloudyBackup {
      */
     const val FORMAT = "cloudy"
 
-    /** Bump when the shape changes; [decode] refuses a newer version than it knows. */
+    /**
+     * Bump when the shape changes *incompatibly*; [decode] refuses a newer
+     * version than it knows. The optional per-day `note` (added with the v2 DB
+     * schema) is deliberately **not** a version bump: it is an additive,
+     * tolerated key, so a file with notes still restores its scores on an
+     * older install that predates the field — which is the whole point of a
+     * portable backup.
+     */
     const val VERSION = 1
 
     /** Defensive ceiling (~270 years of daily entries) so a hostile file can't OOM us. */
     private const val MAX_DAYS = 100_000
 
+    /** Hard cap on an imported note (untrusted input); the UI enforces a far smaller soft limit. */
+    private const val MAX_NOTE_LEN = 10_000
+
     fun encode(days: List<BackupDay>, exportedAt: String): String {
         val daysJson = JSONArray()
         for (day in days) {
-            daysJson.put(
-                JSONObject()
-                    .put("date", day.date.toString()) // ISO-8601, e.g. 2026-05-16
-                    .put("answers", JSONArray(day.answers)),
-            )
+            val obj = JSONObject()
+                .put("date", day.date.toString()) // ISO-8601, e.g. 2026-05-16
+                .put("answers", JSONArray(day.answers))
+            // Omit the key entirely when there is no note, so files from
+            // note-less days stay byte-identical to the pre-note format.
+            if (day.note != null) obj.put("note", day.note)
+            daysJson.put(obj)
         }
         return JSONObject()
             .put("format", FORMAT)
@@ -104,6 +119,18 @@ object CloudyBackup {
                 }
             }
         }
-        return BackupDay(date, answers)
+        // "note" is optional and tolerated: absent / null / blank all mean
+        // "no note". A present note must be a sane-length string; an
+        // absurdly long one is treated as a malformed (hostile) file.
+        val note = if (obj.has("note") && !obj.isNull("note")) {
+            obj.optString("note").also {
+                if (it.length > MAX_NOTE_LEN) {
+                    throw BackupFormatException("Note too long in entry for $date")
+                }
+            }.ifBlank { null }
+        } else {
+            null
+        }
+        return BackupDay(date, answers, note)
     }
 }

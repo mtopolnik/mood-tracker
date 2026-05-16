@@ -19,6 +19,8 @@ data class DayRecord(
     val isComplete: Boolean,
     val anxiety: Int,
     val depression: Int,
+    /** Optional free-form remark; null when the day has none. */
+    val note: String?,
 )
 
 private fun CloudyEntry.toDayRecord(): DayRecord {
@@ -29,6 +31,7 @@ private fun CloudyEntry.toDayRecord(): DayRecord {
         isComplete = isComplete(a),
         anxiety = anxietyScore(a),
         depression = depressionScore(a),
+        note = note,
     )
 }
 
@@ -48,12 +51,12 @@ class CloudyRepository(private val dao: CloudyDao) {
 
     fun observeEarliestEpochDay(): Flow<Long?> = dao.observeMinEpochDay()
 
-    suspend fun upsert(date: LocalDate, answers: List<Int>) =
-        dao.upsert(cloudyEntryOf(date.toEpochDay(), answers))
+    suspend fun upsert(date: LocalDate, answers: List<Int>, note: String?) =
+        dao.upsert(cloudyEntryOf(date.toEpochDay(), answers, note))
 
     /** All stored days as the portable backup model (oldest first). */
     suspend fun exportDays(): List<BackupDay> =
-        dao.getAll().map { BackupDay(LocalDate.ofEpochDay(it.epochDay), it.answers()) }
+        dao.getAll().map { BackupDay(LocalDate.ofEpochDay(it.epochDay), it.answers(), it.note) }
 
     /**
      * Restores a backup. A bulk upsert keyed by epoch-day means a day present in
@@ -62,7 +65,7 @@ class CloudyRepository(private val dao: CloudyDao) {
      * over existing". Returns the number of days written.
      */
     suspend fun importDays(days: List<BackupDay>): Int {
-        dao.upsertAll(days.map { cloudyEntryOf(it.date.toEpochDay(), it.answers) })
+        dao.upsertAll(days.map { cloudyEntryOf(it.date.toEpochDay(), it.answers, it.note) })
         return days.size
     }
 }

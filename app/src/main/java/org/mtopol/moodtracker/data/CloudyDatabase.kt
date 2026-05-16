@@ -5,8 +5,9 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
-private const val DB_VERSION = 1
+private const val DB_VERSION = 2
 
 /**
  * The app has real users with stored history, so schema changes are
@@ -35,11 +36,22 @@ abstract class CloudyDatabase : RoomDatabase() {
         const val VERSION = DB_VERSION
 
         /**
-         * Ordered migrations covering every step 1→2→…→[VERSION]. Empty while
-         * the schema is still at v1; an entry, once shipped, is never removed
-         * or altered.
+         * v1→v2: add the optional free-form [CloudyEntry.note] column. A bare
+         * `ADD COLUMN ... TEXT` is non-destructive — every existing row keeps
+         * its 12 answers and gets `note = NULL` (a day with no note), which is
+         * exactly what the nullable Kotlin field expects.
          */
-        val MIGRATIONS: Array<Migration> = arrayOf()
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE mood_entry ADD COLUMN note TEXT")
+            }
+        }
+
+        /**
+         * Ordered migrations covering every step 1→2→…→[VERSION]. An entry,
+         * once shipped, is never removed or altered.
+         */
+        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2)
 
         @Volatile
         private var instance: CloudyDatabase? = null

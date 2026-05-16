@@ -41,6 +41,7 @@ fun CloudyApp(viewModel: CloudyViewModel) {
         QuestionnaireScreen(
             state = questionnaire,
             onAnswer = viewModel::setAnswer,
+            onNote = viewModel::setNote,
             showBack = true,
             onBack = viewModel::closeEditor,
         )
@@ -94,6 +95,7 @@ fun CloudyApp(viewModel: CloudyViewModel) {
                     QuestionnaireScreen(
                         state = questionnaire,
                         onAnswer = viewModel::setAnswer,
+                        onNote = viewModel::setNote,
                         showBack = false,
                         onBack = null,
                     )

@@ -50,6 +50,8 @@ data class QuestionnaireUiState(
     /** Running scores: grow as items are answered, final once [isComplete]. */
     val anxiety: Int,
     val depression: Int,
+    /** Free-form remark for the day; "" means none. Not part of completeness. */
+    val note: String = "",
 )
 
 data class HistoryRow(
@@ -57,6 +59,8 @@ data class HistoryRow(
     val present: Boolean,
     val anxiety: Int?,
     val depression: Int?,
+    /** The day's remark, or null when there is none. */
+    val note: String? = null,
 )
 
 data class HistoryUiState(
@@ -104,7 +108,7 @@ class CloudyViewModel(app: Application) : AndroidViewModel(app) {
                 // A day "counts" only when fully answered; a partially saved
                 // day still reads as missed (and reopens with its progress).
                 val record = byDate[date]?.takeIf { it.isComplete }
-                HistoryRow(date, record != null, record?.anxiety, record?.depression)
+                HistoryRow(date, record != null, record?.anxiety, record?.depression, record?.note)
             }
             HistoryUiState(rows, rows.count { !it.present }, HISTORY_DAYS)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HistoryUiState())
@@ -181,7 +185,27 @@ class CloudyViewModel(app: Application) : AndroidViewModel(app) {
             anxiety = anxietyScore(answers),
             depression = depressionScore(answers),
         )
-        viewModelScope.launch { repo.upsert(state.date, answers) }
+        persist(state.date, answers, state.note)
+    }
+
+    /**
+     * Records the day's free-form remark. Like [setAnswer] there is no Save
+     * step — every edit upserts the whole day (the note rides along with the
+     * 12 answers). The note plays no part in completeness or scoring.
+     */
+    fun setNote(text: String) {
+        val state = _questionnaire.value
+        _questionnaire.value = state.copy(note = text)
+        persist(state.date, state.answers, text)
+    }
+
+    /**
+     * Upserts the full day. The note is normalised so a blank/whitespace-only
+     * remark is stored as "no note" (NULL), keeping note-less days identical
+     * to the pre-note schema on disk and in exports.
+     */
+    private fun persist(date: LocalDate, answers: List<Int>, note: String) {
+        viewModelScope.launch { repo.upsert(date, answers, note.trim().ifBlank { null }) }
     }
 
     fun setRange(range: ChartRange) {
@@ -220,6 +244,7 @@ class CloudyViewModel(app: Application) : AndroidViewModel(app) {
         isComplete = false,
         anxiety = 0,
         depression = 0,
+        note = "",
     )
 
     private fun loadQuestionnaire(date: LocalDate) {
@@ -233,6 +258,7 @@ class CloudyViewModel(app: Application) : AndroidViewModel(app) {
                     isComplete = record.isComplete,
                     anxiety = record.anxiety,
                     depression = record.depression,
+                    note = record.note ?: "",
                 )
             } else {
                 emptyQuestionnaire(date)

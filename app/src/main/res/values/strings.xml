@@ -30,6 +30,8 @@
     <string name="score_content_desc_empty">%1$s: not recorded</string>
     <string name="progress">Remaining</string>
     <string name="progress_content_desc">%1$s: %2$d of %3$d remaining</string>
+    <string name="note_label">How was your day? (optional)</string>
+    <string name="note_placeholder">A short remark on how you felt today</string>
     <string name="no_entry">No entry</string>
     <string name="missed_summary">Missed %1$d of last 30 days</string>
     <string name="all_caught_up">All %1$d days filled in</string>

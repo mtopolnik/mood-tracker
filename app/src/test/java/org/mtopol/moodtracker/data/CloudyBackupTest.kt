@@ -105,4 +105,42 @@ class CloudyBackupTest {
             CloudyBackup.decode("""{"format":"cloudy","days":[{"date":"2026-01-01"}]}""")
         }
     }
+
+    @Test
+    fun noteRoundTrips() {
+        val day = BackupDay(LocalDate.parse("2026-05-16"), complete, "Rough morning, better by evening")
+        val decoded = CloudyBackup.decode(CloudyBackup.encode(listOf(day), "now"))
+        assertEquals(day, decoded.single())
+    }
+
+    @Test
+    fun noteLessDayOmitsKeyForByteIdenticalFormat() {
+        // A day with no note must serialise exactly like the pre-note format,
+        // so old installs (and old files) stay fully interoperable.
+        val json = CloudyBackup.encode(listOf(BackupDay(LocalDate.parse("2026-01-01"), complete)), "now")
+        assertTrue("note" !in json)
+        assertEquals(null, CloudyBackup.decode(json).single().note)
+    }
+
+    @Test
+    fun absentNullAndBlankNoteAllDecodeToNull() {
+        // Forward/back compat: a missing key, an explicit null, and a
+        // whitespace-only note are all "no note".
+        val absent = """{"format":"cloudy","days":[{"date":"2026-01-01","answers":${complete}}]}"""
+        val nul = """{"format":"cloudy","days":[{"date":"2026-01-02","answers":${complete},"note":null}]}"""
+        val blank = """{"format":"cloudy","days":[{"date":"2026-01-03","answers":${complete},"note":"   "}]}"""
+        for (json in listOf(absent, nul, blank)) {
+            assertEquals(null, CloudyBackup.decode(json).single().note)
+        }
+    }
+
+    @Test
+    fun rejectsAbsurdlyLongNote() {
+        val huge = "x".repeat(20_000)
+        assertFailsWith<BackupFormatException> {
+            CloudyBackup.decode(
+                """{"format":"cloudy","days":[{"date":"2026-01-01","answers":${complete},"note":"$huge"}]}""",
+            )
+        }
+    }
 }
