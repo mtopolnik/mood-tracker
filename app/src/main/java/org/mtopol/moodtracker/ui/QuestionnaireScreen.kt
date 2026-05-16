@@ -5,9 +5,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -107,6 +109,9 @@ fun QuestionnaireScreen(
                         // system navigation inset so it doesn't sit under the
                         // navigation pill. As the Today tab the bar sits above
                         // CloudyApp's NavigationBar, which already handles it.
+                        // The bar deliberately ignores the IME: when the
+                        // keyboard is up it is simply covered (the score gauges
+                        // are irrelevant while typing the note).
                         .then(if (showBack) Modifier.navigationBarsPadding() else Modifier)
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,
@@ -125,7 +130,15 @@ fun QuestionnaireScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                // Reserve the bar/system insets, mark them consumed, then add
+                // the IME. Because the bar space is already consumed, imePadding
+                // contributes only max(0, ime - bar): the list's bottom inset
+                // is max(bar, ime), never their sum. So the focused note field
+                // scrolls clear of the keyboard with no empty gap, while the
+                // bottom bar stays put and is simply covered by the IME.
+                .padding(padding)
+                .consumeWindowInsets(padding)
+                .imePadding(),
             contentPadding = PaddingValues(16.dp),
         ) {
             itemsIndexed(state.answers) { index, answer ->

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
@@ -91,7 +92,15 @@ fun CloudyApp(viewModel: CloudyViewModel) {
                     bottom = padding.calculateBottomPadding(),
                 )
                 val questionnaire by viewModel.questionnaire.collectAsState()
-                Box(Modifier.padding(todayPadding)) {
+                // Pair padding with consumeWindowInsets: this Box reserves the
+                // NavigationBar space, and consuming it stops QuestionnaireScreen's
+                // imePadding() from counting that same space a second time (which
+                // left a NavigationBar-sized empty gap above the keyboard).
+                Box(
+                    Modifier
+                        .padding(todayPadding)
+                        .consumeWindowInsets(todayPadding),
+                ) {
                     QuestionnaireScreen(
                         state = questionnaire,
                         onAnswer = viewModel::setAnswer,
