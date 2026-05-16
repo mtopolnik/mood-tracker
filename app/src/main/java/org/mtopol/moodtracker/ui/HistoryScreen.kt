@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.dp
 import org.mtopol.moodtracker.HistoryRow
 import org.mtopol.moodtracker.HistoryUiState
 import org.mtopol.moodtracker.R
+import org.mtopol.moodtracker.domain.QUESTION_COUNT
+import org.mtopol.moodtracker.ui.components.CompletionPill
 import org.mtopol.moodtracker.ui.components.ScorePill
 import org.mtopol.moodtracker.ui.theme.anxietyColor
 import org.mtopol.moodtracker.ui.theme.depressionColor
@@ -42,7 +44,11 @@ import java.util.Locale
 private val WeekdayFmt = DateTimeFormatter.ofPattern("EEE", Locale.getDefault())
 private val DayFmt = DateTimeFormatter.ofPattern("MMM d", Locale.getDefault())
 
-/** Last 30 days, newest first, with missed days clearly distinct and tappable. */
+/**
+ * Last 30 days, newest first. Each day is one of three tappable states:
+ * complete (scores + note), partially filled (the "remaining" bar, mirroring
+ * the Today tab), or untouched ("no entry").
+ */
 @Composable
 fun HistoryScreen(
     state: HistoryUiState,
@@ -73,7 +79,11 @@ fun HistoryScreen(
         }
 
         items(state.rows, key = { it.date.toEpochDay() }) { row ->
-            if (row.present) PresentRow(row, onOpen) else MissedRow(row, onOpen)
+            when {
+                row.present -> PresentRow(row, onOpen)
+                row.answered > 0 -> PartialRow(row, onOpen)
+                else -> MissedRow(row, onOpen)
+            }
         }
     }
 }
@@ -148,6 +158,36 @@ private fun MissedRow(row: HistoryRow, onOpen: (LocalDate) -> Unit) {
                     modifier = Modifier.padding(start = 8.dp),
                 )
             }
+        }
+    }
+}
+
+/**
+ * A started-but-incomplete day: same tappable outlined card as a miss, but it
+ * shows the Today tab's "remaining" bar instead of "no entry", so progress is
+ * visible at a glance. A neutral outline separates it from the red miss tint.
+ */
+@Composable
+private fun PartialRow(row: HistoryRow, onOpen: (LocalDate) -> Unit) {
+    OutlinedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onOpen(row.date) },
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            DateLabel(row.date)
+            CompletionPill(
+                label = stringResource(R.string.progress),
+                answered = row.answered,
+                total = QUESTION_COUNT,
+            )
         }
     }
 }

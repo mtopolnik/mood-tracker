@@ -61,6 +61,13 @@ data class HistoryRow(
     val depression: Int?,
     /** The day's remark, or null when there is none. */
     val note: String? = null,
+    /**
+     * Items answered so far on this day (0 when nothing is saved). With
+     * [present] this gives three states: complete ([present]); partially
+     * filled (`!present && answered > 0`) → show the "remaining" bar; or
+     * untouched (`answered == 0`) → "no entry".
+     */
+    val answered: Int = 0,
 )
 
 data class HistoryUiState(
@@ -105,11 +112,22 @@ class CloudyViewModel(app: Application) : AndroidViewModel(app) {
             val byDate = days.associateBy { it.date }
             val rows = (0 until HISTORY_DAYS).map { i ->
                 val date = today.minusDays(i.toLong()) // i = 0 → today (newest first)
-                // A day "counts" only when fully answered; a partially saved
-                // day still reads as missed (and reopens with its progress).
-                val record = byDate[date]?.takeIf { it.isComplete }
-                HistoryRow(date, record != null, record?.anxiety, record?.depression, record?.note)
+                // A day "counts" only when fully answered. A partially saved
+                // day doesn't count, but its progress is surfaced (the
+                // "remaining" bar) instead of reading as an untouched miss.
+                val rec = byDate[date]
+                val complete = rec?.takeIf { it.isComplete }
+                HistoryRow(
+                    date = date,
+                    present = complete != null,
+                    anxiety = complete?.anxiety,
+                    depression = complete?.depression,
+                    note = complete?.note,
+                    answered = rec?.answers?.count { it >= 0 } ?: 0,
+                )
             }
+            // A partial day is still not a completed day, so it stays in the
+            // missed tally even though it now renders its progress.
             HistoryUiState(rows, rows.count { !it.present }, HISTORY_DAYS)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HistoryUiState())
 
