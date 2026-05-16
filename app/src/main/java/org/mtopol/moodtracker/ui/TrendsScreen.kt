@@ -27,8 +27,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
+import com.patrykandpatrick.vico.compose.cartesian.Zoom
 import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
+import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
+import com.patrykandpatrick.vico.compose.cartesian.rememberVicoZoomState
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModelProducer
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianLayerRangeProvider
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianValueFormatter
@@ -157,6 +160,13 @@ private fun MoodChart(state: TrendsUiState) {
             bottomAxis = HorizontalAxis.rememberBottom(valueFormatter = xFormatter),
         ),
         modelProducer = modelProducer,
+        // The chart must always show the whole selected range at once. Vico's
+        // host defaults to a horizontally scrollable viewport at fixed (1x)
+        // zoom, so a wide range (e.g. 1Y / All) overflows and is only reachable
+        // by scrolling. Disabling scroll and pinning zoom to Zoom.Content
+        // scales the X axis to fit every day in the range into the viewport.
+        scrollState = rememberVicoScrollState(scrollEnabled = false),
+        zoomState = rememberVicoZoomState(zoomEnabled = false, initialZoom = Zoom.Content),
         modifier = Modifier
             .fillMaxWidth()
             .height(280.dp),
