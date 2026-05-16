@@ -1,3 +1,5 @@
+playstore/
+
 # Gradle
 .gradle/
 build/
