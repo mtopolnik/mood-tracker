@@ -15,7 +15,7 @@ private const val DB_VERSION = 1
  *  1. bump [DB_VERSION];
  *  2. add a [Migration] from the previous version to [MIGRATIONS];
  *  3. build, then commit the regenerated
- *     `app/schemas/org.mtopol.moodtracker.data.MoodDatabase/<version>.json`
+ *     `app/schemas/org.mtopol.moodtracker.data.CloudyDatabase/<version>.json`
  *     (exported because `exportSchema = true`) — it is the baseline the next
  *     migration diffs against.
  *
@@ -25,10 +25,10 @@ private const val DB_VERSION = 1
  * in plain CI; migration *correctness* additionally needs an instrumented
  * `MigrationTestHelper` test before release.
  */
-@Database(entities = [MoodEntry::class], version = DB_VERSION, exportSchema = true)
-abstract class MoodDatabase : RoomDatabase() {
+@Database(entities = [CloudyEntry::class], version = DB_VERSION, exportSchema = true)
+abstract class CloudyDatabase : RoomDatabase() {
 
-    abstract fun moodDao(): MoodDao
+    abstract fun cloudyDao(): CloudyDao
 
     companion object {
         /** Single source of truth for the schema version (also read by tests). */
@@ -42,13 +42,13 @@ abstract class MoodDatabase : RoomDatabase() {
         val MIGRATIONS: Array<Migration> = arrayOf()
 
         @Volatile
-        private var instance: MoodDatabase? = null
+        private var instance: CloudyDatabase? = null
 
-        fun get(context: Context): MoodDatabase =
+        fun get(context: Context): CloudyDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
                     context.applicationContext,
-                    MoodDatabase::class.java,
+                    CloudyDatabase::class.java,
                     "mood.db",
                 )
                     .addMigrations(*MIGRATIONS)

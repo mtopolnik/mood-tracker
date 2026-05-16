@@ -16,13 +16,7 @@ No global `gradle`/`kotlinc` — always use the wrapper (Gradle 9.3.1, pinned).
 ## Project Overview
 
 **Cloudy** (formerly "Mood Tracker") — a backend-free Android app for a daily
-12-item mood questionnaire (each item 0–3).
-
-> Rename note: the user-facing name and the `MoodBackup.FORMAT` tag (renamed
-> while the backup feature was still unreleased) are now "cloudy"/"Cloudy". The
-> `applicationId`, `namespace`, package `org.mtopol.moodtracker`, and theme
-> symbol names deliberately stay unchanged — `applicationId` is the permanent
-> Play Store identity and the rest are internal-only. Items 1–6 sum to an *anxiety* score, 7–12 to a
+12-item mood questionnaire (each item 0–3). Items 1–6 sum to an *anxiety* score, 7–12 to a
 *depression* score (each 0–18). Opens on today's questionnaire; every choice is
 persisted immediately (no Save button) while a bottom bar shows the two category
 gauges live; a day only *counts* once all 12 items are answered. The last 30
@@ -35,13 +29,21 @@ Jetpack Compose + Material 3, AGP 9.0.1, Kotlin (Compose plugin) 2.3.10,
 `android.builtInKotlin=true`. No navigation library, no DI framework — matching
 the conventions of the sibling `grandfather-clock` project.
 
+> **Rename note.** The app was renamed Mood Tracker → **Cloudy**: display name,
+> all `Cloudy*` source symbols, and the `CloudyBackup.FORMAT` tag (`"cloudy"`,
+> safely renamed pre-release). Deliberately **unchanged**: the package
+> `org.mtopol.moodtracker`, `namespace`, and `applicationId` — `applicationId`
+> is the permanent Play Store identity, the package is internal churn. The Room
+> table (`mood_entry`), columns, and DB file (`mood.db`) are also unchanged, so
+> the schema `identityHash` is identical and the existing install is unaffected.
+
 ## Architecture
 
 Single `ComponentActivity` (`MainActivity`) →
-`MoodTrackerTheme { MoodApp(vm) }`. Screen switching is plain Compose state (a
+`CloudyTheme { CloudyApp(vm) }`. Screen switching is plain Compose state (a
 `Tab` enum + a nullable editor date), not a navigation library.
 
-- **`MoodViewModel`** (`AndroidViewModel`) — owns `StateFlow` UI states for the
+- **`CloudyViewModel`** (`AndroidViewModel`) — owns `StateFlow` UI states for the
   questionnaire / history / trends, the selected tab, and the past-day editor
   date. Builds the DB + repository from the application context (no DI).
   `setAnswer` updates the in-memory state (live running scores) and upserts the
@@ -51,19 +53,19 @@ Single `ComponentActivity` (`MainActivity`) →
   completeness), `Interpolation` (per-day linear interpolation, no extrapolation
   past the first/last real point), `DateRange` (`ChartRange` → epoch-day
   window), `Questions` (the 12 string-resource ids; this one references `R`).
-- **`data/`** — Room: `MoodEntry` (PK = `LocalDate.toEpochDay()`, 12 `Int`
+- **`data/`** — Room: `CloudyEntry` (PK = `LocalDate.toEpochDay()`, 12 `Int`
   columns that may hold `UNANSWERED` (-1) for an in-progress day; scores **and**
-  completeness are derived in the domain, never stored), `MoodDao`,
-  `MoodDatabase` (**non-destructive**: single-source `VERSION` + ordered
+  completeness are derived in the domain, never stored), `CloudyDao`,
+  `CloudyDatabase` (**non-destructive**: single-source `VERSION` + ordered
   `MIGRATIONS`, no `fallbackToDestructiveMigration` — a missing migration fails
   loudly instead of wiping real user data; **`JournalMode.TRUNCATE`** so there
-  is no `-wal` sidecar for Auto Backup to capture mid-write), `MoodRepository`
+  is no `-wal` sidecar for Auto Backup to capture mid-write), `CloudyRepository`
   (the only Room ↔ domain
-  boundary; returns Flows; also `exportDays`/`importDays`), `MoodBackup` (the
+  boundary; returns Flows; also `exportDays`/`importDays`), `CloudyBackup` (the
   portable, schema-independent JSON format — `org.json`, no production dep —
   whose `decode` treats the file as untrusted: validates every field, caps
   size, tolerates unknown/missing keys).
-- **`ui/`** — `MoodApp` (Scaffold + NavigationBar), `QuestionnaireScreen` (Today
+- **`ui/`** — `CloudyApp` (Scaffold + NavigationBar), `QuestionnaireScreen` (Today
   tab *and* the full-screen past-day editor; bottom bar = the two always-visible
   `ScorePill` gauges, no Save button), `HistoryScreen`, `TrendsScreen` (Vico),
   `BackupScreen` (Backup tab: share-sheet export via `FileProvider`, SAF
@@ -83,7 +85,7 @@ Single `ComponentActivity` (`MainActivity`) →
   separate `:core` artifact. Chart code is isolated to `ui/TrendsScreen.kt`.
 - **WorkManager `androidx.work:work-runtime-ktx:2.11.2`**.
 - **No production JSON dependency** — backup (de)serialization uses the platform
-  `org.json`. `org.json:json` is a **test-only** dependency so `MoodBackupTest`
+  `org.json`. `org.json:json` is a **test-only** dependency so `CloudyBackupTest`
   can run the parser on the JVM (the `android.jar` stub throws).
 
 ## Data portability
@@ -93,10 +95,10 @@ two ways:
 
 - **Auto Backup** — `android:fullBackupContent` (API 30) +
   `android:dataExtractionRules` (API 31+), scoped to `mood.db`. Restores
-  automatically on a new device. Safe because `MoodDatabase` uses
+  automatically on a new device. Safe because `CloudyDatabase` uses
   `JournalMode.TRUNCATE` (single file, no torn `-wal`).
 - **Export/import** — user-driven, via the Backup tab. Export writes
-  `MoodBackup` JSON to `cacheDir/exports/` and shares it through a
+  `CloudyBackup` JSON to `cacheDir/exports/` and shares it through a
   `FileProvider` (`${applicationId}.fileprovider`, see `res/xml/file_paths.xml`)
   ACTION_SEND chooser — the reliable route to Drive/email. Import picks a file
   via SAF (`OpenDocument`, accepts `*/*` since Drive mislabels JSON; the content
@@ -119,11 +121,11 @@ two ways:
 There is real user data, so destructive migration is **gone**. Every schema
 change must:
 
-1. bump `DB_VERSION` in `MoodDatabase.kt`;
-2. add a `Migration(n-1, n)` to `MoodDatabase.MIGRATIONS` (ordered; an entry,
+1. bump `DB_VERSION` in `CloudyDatabase.kt`;
+2. add a `Migration(n-1, n)` to `CloudyDatabase.MIGRATIONS` (ordered; an entry,
    once shipped, is never edited or removed);
 3. build, then **commit** the regenerated
-   `app/schemas/org.mtopol.moodtracker.data.MoodDatabase/<version>.json`
+   `app/schemas/org.mtopol.moodtracker.data.CloudyDatabase/<version>.json`
    (`exportSchema = true`; `schemas/` is intentionally **not** gitignored — it
    is the baseline migrations diff against).
 
@@ -149,7 +151,7 @@ Never edit the committed entity/`1.json` baseline in place; never re-add
 
 `./gradlew testDebugUnitTest` covers the domain (`ScoringTest`,
 `InterpolationTest`, `DateRangeTest`), the untrusted backup parser
-(`MoodBackupTest`), and the schema-migration tripwire (`MigrationGuardTest`) —
+(`CloudyBackupTest`), and the schema-migration tripwire (`MigrationGuardTest`) —
 JUnit4 `@Test` + `kotlin.test` assertions, matching the sibling project's
 convention.
 

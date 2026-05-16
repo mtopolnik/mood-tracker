@@ -25,7 +25,7 @@ import org.mtopol.moodtracker.domain.QUESTION_COUNT
  *
  * ### Adding a migration test (do this for every `DB_VERSION` bump)
  *
- * When you add `Migration(1, 2)` to `MoodDatabase.MIGRATIONS`, add a test that
+ * When you add `Migration(1, 2)` to `CloudyDatabase.MIGRATIONS`, add a test that
  * seeds real v1 rows, runs the migration, and asserts the data survived:
  *
  * ```
@@ -34,7 +34,7 @@ import org.mtopol.moodtracker.domain.QUESTION_COUNT
  *         execSQL("INSERT INTO mood_entry (epochDay, q1, … q12) VALUES (0, 0, …)")
  *         close()
  *     }
- *     helper.runMigrationsAndValidate(TEST_DB, 2, true, *MoodDatabase.MIGRATIONS).use { db ->
+ *     helper.runMigrationsAndValidate(TEST_DB, 2, true, *CloudyDatabase.MIGRATIONS).use { db ->
  *         db.query("SELECT q1 FROM mood_entry WHERE epochDay = 0").use { c ->
  *             assertTrue(c.moveToFirst())
  *             // assert the migrated/back-filled values are what you expect
@@ -53,12 +53,12 @@ class MigrationTest {
     @get:Rule
     val helper = MigrationTestHelper(
         InstrumentationRegistry.getInstrumentation(),
-        MoodDatabase::class.java,
+        CloudyDatabase::class.java,
     )
 
     /**
      * Creates the database at the v1 baseline and migrates it all the way to
-     * the current [MoodDatabase.VERSION] using the real registered migrations,
+     * the current [CloudyDatabase.VERSION] using the real registered migrations,
      * validating the result matches the exported schema for that version (and
      * that no table was unexpectedly dropped). At v1 this still earns its keep:
      * it proves the schema-asset wiring and the harness work, so the first real
@@ -69,16 +69,16 @@ class MigrationTest {
         helper.createDatabase(TEST_DB, 1).close()
         helper.runMigrationsAndValidate(
             TEST_DB,
-            MoodDatabase.VERSION,
+            CloudyDatabase.VERSION,
             true,
-            *MoodDatabase.MIGRATIONS,
+            *CloudyDatabase.MIGRATIONS,
         ).use { db ->
-            assertEquals(MoodDatabase.VERSION, db.version)
+            assertEquals(CloudyDatabase.VERSION, db.version)
         }
     }
 
     /**
-     * Opens the *real* compiled `MoodDatabase` on-device and round-trips a row.
+     * Opens the *real* compiled `CloudyDatabase` on-device and round-trips a row.
      * This is the on-device counterpart to the JVM tests: it catches a schema
      * whose `identityHash` no longer matches the compiled entities (Room would
      * throw on open) — i.e. an entity changed without a version bump.
@@ -86,12 +86,12 @@ class MigrationTest {
     @Test
     fun compiledSchemaOpensAndRoundTripsARow() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val db = Room.inMemoryDatabaseBuilder(context, MoodDatabase::class.java).build()
+        val db = Room.inMemoryDatabaseBuilder(context, CloudyDatabase::class.java).build()
         try {
             runBlocking {
                 val answers = List(QUESTION_COUNT) { it % 4 }
-                db.moodDao().upsert(moodEntryOf(epochDay = 0L, a = answers))
-                val row = db.moodDao().getByDay(0L)
+                db.cloudyDao().upsert(cloudyEntryOf(epochDay = 0L, a = answers))
+                val row = db.cloudyDao().getByDay(0L)
                 assertNotNull(row)
                 assertEquals(answers, row!!.answers())
             }

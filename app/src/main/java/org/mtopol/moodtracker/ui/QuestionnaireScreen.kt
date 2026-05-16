@@ -101,7 +101,7 @@ fun QuestionnaireScreen(
                         // its bottom bar reaches the screen edge; consume the
                         // system navigation inset so it doesn't sit under the
                         // navigation pill. As the Today tab the bar sits above
-                        // MoodApp's NavigationBar, which already handles it.
+                        // CloudyApp's NavigationBar, which already handles it.
                         .then(if (showBack) Modifier.navigationBarsPadding() else Modifier)
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,

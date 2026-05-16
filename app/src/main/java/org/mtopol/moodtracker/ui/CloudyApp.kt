@@ -22,7 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import org.mtopol.moodtracker.MoodViewModel
+import org.mtopol.moodtracker.CloudyViewModel
 import org.mtopol.moodtracker.R
 import org.mtopol.moodtracker.Tab
 
@@ -32,7 +32,7 @@ import org.mtopol.moodtracker.Tab
  * full-screen past-day editor over everything else.
  */
 @Composable
-fun MoodApp(viewModel: MoodViewModel) {
+fun CloudyApp(viewModel: CloudyViewModel) {
     val tab by viewModel.tab.collectAsState()
     val editorDate by viewModel.editorDate.collectAsState()
 

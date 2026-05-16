@@ -12,12 +12,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
 import org.mtopol.moodtracker.reminder.Notifications
-import org.mtopol.moodtracker.ui.MoodApp
-import org.mtopol.moodtracker.ui.theme.MoodTrackerTheme
+import org.mtopol.moodtracker.ui.CloudyApp
+import org.mtopol.moodtracker.ui.theme.CloudyTheme
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: MoodViewModel by viewModels()
+    private val viewModel: CloudyViewModel by viewModels()
 
     private val notificationPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -29,8 +29,8 @@ class MainActivity : ComponentActivity() {
         maybeRequestNotificationPermission()
         handleIntent(intent)
         setContent {
-            MoodTrackerTheme {
-                MoodApp(viewModel)
+            CloudyTheme {
+                CloudyApp(viewModel)
             }
         }
     }

@@ -24,7 +24,7 @@ class BackupFormatException(message: String) : Exception(message)
  *
  * Uses the platform `org.json` so it adds no production dependency.
  */
-object MoodBackup {
+object CloudyBackup {
 
     /**
      * Identifies the file as ours; a foreign JSON is rejected, not half-read.

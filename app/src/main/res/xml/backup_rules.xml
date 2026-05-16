@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- API 30 (Auto Backup, full-backup-content). Only the mood database is
-     backed up; TRUNCATE journal mode (see MoodDatabase) means there is no
+     backed up; TRUNCATE journal mode (see CloudyDatabase) means there is no
      -wal sidecar to capture mid-write, so the restored copy is consistent. -->
 <full-backup-content>
     <include domain="database" path="mood.db" />

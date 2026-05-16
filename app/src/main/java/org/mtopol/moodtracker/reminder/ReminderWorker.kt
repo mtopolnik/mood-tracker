@@ -3,8 +3,8 @@ package org.mtopol.moodtracker.reminder
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import org.mtopol.moodtracker.data.MoodDatabase
-import org.mtopol.moodtracker.data.MoodRepository
+import org.mtopol.moodtracker.data.CloudyDatabase
+import org.mtopol.moodtracker.data.CloudyRepository
 import java.time.LocalDate
 
 /**
@@ -18,7 +18,7 @@ class ReminderWorker(
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
-        val repo = MoodRepository(MoodDatabase.get(applicationContext).moodDao())
+        val repo = CloudyRepository(CloudyDatabase.get(applicationContext).cloudyDao())
         if (repo.getDay(LocalDate.now())?.isComplete != true) {
             Notifications.show(applicationContext)
         }

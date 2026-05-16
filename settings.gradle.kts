@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MoodTracker"
+rootProject.name = "Cloudy"
 include(":app")

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Bootstrap window theme shown until Compose content is drawn. -->
-    <style name="Theme.MoodTracker" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="Theme.Cloudy" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@android:color/white</item>
     </style>
 </resources>

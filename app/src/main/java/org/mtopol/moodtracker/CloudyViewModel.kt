@@ -15,9 +15,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.mtopol.moodtracker.data.BackupFormatException
-import org.mtopol.moodtracker.data.MoodBackup
-import org.mtopol.moodtracker.data.MoodDatabase
-import org.mtopol.moodtracker.data.MoodRepository
+import org.mtopol.moodtracker.data.CloudyBackup
+import org.mtopol.moodtracker.data.CloudyDatabase
+import org.mtopol.moodtracker.data.CloudyRepository
 import org.mtopol.moodtracker.domain.ChartRange
 import org.mtopol.moodtracker.domain.DailyPoint
 import org.mtopol.moodtracker.domain.QUESTION_COUNT
@@ -75,9 +75,9 @@ data class TrendsUiState(
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class MoodViewModel(app: Application) : AndroidViewModel(app) {
+class CloudyViewModel(app: Application) : AndroidViewModel(app) {
 
-    private val repo = MoodRepository(MoodDatabase.get(app).moodDao())
+    private val repo = CloudyRepository(CloudyDatabase.get(app).cloudyDao())
     private val reminders = ReminderScheduler(app)
 
     /** Captured once at creation; the process is short-lived and relaunched daily. */
@@ -190,7 +190,7 @@ class MoodViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Serialises every stored day to the shareable backup JSON. */
     suspend fun exportJson(): String = withContext(Dispatchers.IO) {
-        MoodBackup.encode(repo.exportDays(), Instant.now().toString())
+        CloudyBackup.encode(repo.exportDays(), Instant.now().toString())
     }
 
     /**
@@ -200,7 +200,7 @@ class MoodViewModel(app: Application) : AndroidViewModel(app) {
      */
     suspend fun importJson(text: String): ImportOutcome = withContext(Dispatchers.IO) {
         try {
-            val days = MoodBackup.decode(text)
+            val days = CloudyBackup.decode(text)
             if (days.isEmpty()) {
                 ImportOutcome.Empty
             } else {

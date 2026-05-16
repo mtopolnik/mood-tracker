@@ -22,8 +22,8 @@ class MigrationGuardTest {
     // root too so this passes regardless of how the build is invoked.
     private val schemaDir: File =
         listOf(
-            File("schemas/org.mtopol.moodtracker.data.MoodDatabase"),
-            File("app/schemas/org.mtopol.moodtracker.data.MoodDatabase"),
+            File("schemas/org.mtopol.moodtracker.data.CloudyDatabase"),
+            File("app/schemas/org.mtopol.moodtracker.data.CloudyDatabase"),
         ).firstOrNull { it.isDirectory }
             ?: fail("Exported Room schema dir not found — has exportSchema/KSP broken?")
 
@@ -43,26 +43,26 @@ class MigrationGuardTest {
 
     @Test
     fun exportedSchemaMatchesDeclaredVersion() {
-        // Bumping MoodDatabase.VERSION without committing the matching
+        // Bumping CloudyDatabase.VERSION without committing the matching
         // schemas/<version>.json (or the reverse) fails here, before release.
         assertEquals(
-            MoodDatabase.VERSION,
+            CloudyDatabase.VERSION,
             exportedVersions().maxOrNull(),
-            "Highest exported schema must equal MoodDatabase.VERSION. " +
+            "Highest exported schema must equal CloudyDatabase.VERSION. " +
                 "Build the app and commit the regenerated schemas/<version>.json.",
         )
     }
 
     @Test
     fun everyVersionStepHasARegisteredMigration() {
-        for (target in 2..MoodDatabase.VERSION) {
-            val covered = MoodDatabase.MIGRATIONS.any {
+        for (target in 2..CloudyDatabase.VERSION) {
+            val covered = CloudyDatabase.MIGRATIONS.any {
                 it.startVersion == target - 1 && it.endVersion == target
             }
             assertTrue(
                 covered,
                 "No Room Migration(${target - 1}, $target) registered in " +
-                    "MoodDatabase.MIGRATIONS — existing users would lose data on upgrade.",
+                    "CloudyDatabase.MIGRATIONS — existing users would lose data on upgrade.",
             )
         }
     }

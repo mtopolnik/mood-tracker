@@ -23,7 +23,7 @@ private val LightColors = lightColorScheme(
 )
 
 @Composable
-fun MoodTrackerTheme(
+fun CloudyTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit,

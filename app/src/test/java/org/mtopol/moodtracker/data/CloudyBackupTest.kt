@@ -13,7 +13,7 @@ import kotlin.test.assertTrue
  * is round-trip fidelity plus rejection of every malformed shape with a clean
  * [BackupFormatException] (never a raw JSON/parse crash).
  */
-class MoodBackupTest {
+class CloudyBackupTest {
 
     private fun day(date: String, vararg a: Int) =
         BackupDay(LocalDate.parse(date), a.toList())
@@ -26,22 +26,22 @@ class MoodBackupTest {
             day("2026-05-14", *complete.toIntArray()),
             day("2026-05-16", *IntArray(QUESTION_COUNT) { UNANSWERED }),
         )
-        val decoded = MoodBackup.decode(MoodBackup.encode(days, "2026-05-16T00:00:00Z"))
+        val decoded = CloudyBackup.decode(CloudyBackup.encode(days, "2026-05-16T00:00:00Z"))
         assertEquals(days, decoded)
     }
 
     @Test
     fun unansweredSentinelSurvivesRoundTrip() {
         val partial = MutableList(QUESTION_COUNT) { UNANSWERED }.also { it[0] = 3; it[7] = 2 }
-        val decoded = MoodBackup.decode(
-            MoodBackup.encode(listOf(BackupDay(LocalDate.now(), partial)), "now"),
+        val decoded = CloudyBackup.decode(
+            CloudyBackup.encode(listOf(BackupDay(LocalDate.now(), partial)), "now"),
         )
         assertEquals(partial, decoded.single().answers)
     }
 
     @Test
     fun emptyExportDecodesToEmptyList() {
-        assertTrue(MoodBackup.decode(MoodBackup.encode(emptyList(), "now")).isEmpty())
+        assertTrue(CloudyBackup.decode(CloudyBackup.encode(emptyList(), "now")).isEmpty())
     }
 
     @Test
@@ -49,32 +49,32 @@ class MoodBackupTest {
         // No "exportedAt", plus an unknown key — still valid.
         val json = """{"format":"cloudy","extra":true,
             "days":[{"date":"2026-01-01","answers":${complete}}]}"""
-        assertEquals(LocalDate.parse("2026-01-01"), MoodBackup.decode(json).single().date)
+        assertEquals(LocalDate.parse("2026-01-01"), CloudyBackup.decode(json).single().date)
     }
 
     @Test
     fun rejectsNonJson() {
-        assertFailsWith<BackupFormatException> { MoodBackup.decode("not json at all") }
+        assertFailsWith<BackupFormatException> { CloudyBackup.decode("not json at all") }
     }
 
     @Test
     fun rejectsForeignJson() {
         assertFailsWith<BackupFormatException> {
-            MoodBackup.decode("""{"format":"something-else","days":[]}""")
+            CloudyBackup.decode("""{"format":"something-else","days":[]}""")
         }
     }
 
     @Test
     fun rejectsNewerVersion() {
         assertFailsWith<BackupFormatException> {
-            MoodBackup.decode("""{"format":"cloudy","version":99,"days":[]}""")
+            CloudyBackup.decode("""{"format":"cloudy","version":99,"days":[]}""")
         }
     }
 
     @Test
     fun rejectsWrongAnswerCount() {
         assertFailsWith<BackupFormatException> {
-            MoodBackup.decode(
+            CloudyBackup.decode(
                 """{"format":"cloudy","days":[{"date":"2026-01-01","answers":[0,1,2]}]}""",
             )
         }
@@ -84,7 +84,7 @@ class MoodBackupTest {
     fun rejectsOutOfRangeAnswer() {
         val bad = complete.toMutableList().also { it[3] = 7 }
         assertFailsWith<BackupFormatException> {
-            MoodBackup.decode(
+            CloudyBackup.decode(
                 """{"format":"cloudy","days":[{"date":"2026-01-01","answers":${bad}}]}""",
             )
         }
@@ -93,7 +93,7 @@ class MoodBackupTest {
     @Test
     fun rejectsUnparseableDate() {
         assertFailsWith<BackupFormatException> {
-            MoodBackup.decode(
+            CloudyBackup.decode(
                 """{"format":"cloudy","days":[{"date":"yesterday","answers":${complete}}]}""",
             )
         }
@@ -102,7 +102,7 @@ class MoodBackupTest {
     @Test
     fun rejectsMissingAnswers() {
         assertFailsWith<BackupFormatException> {
-            MoodBackup.decode("""{"format":"cloudy","days":[{"date":"2026-01-01"}]}""")
+            CloudyBackup.decode("""{"format":"cloudy","days":[{"date":"2026-01-01"}]}""")
         }
     }
 }
