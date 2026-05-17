@@ -116,13 +116,20 @@ fun QuestionnaireScreen(
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
-                    CompletionPill(
-                        label = stringResource(R.string.progress),
-                        answered = state.answers.count { it >= 0 },
-                        total = QUESTION_COUNT,
-                    )
-                    ScorePill(stringResource(R.string.anxiety), state.anxiety, anxietyColor())
-                    ScorePill(stringResource(R.string.depression), state.depression, depressionColor())
+                    // While filling in, only the progress bar — a live-filling
+                    // score gauge is just a distraction. The category scores
+                    // appear once, on completion, when they actually mean
+                    // something.
+                    if (state.isComplete) {
+                        ScorePill(stringResource(R.string.anxiety), state.anxiety, anxietyColor())
+                        ScorePill(stringResource(R.string.depression), state.depression, depressionColor())
+                    } else {
+                        CompletionPill(
+                            label = stringResource(R.string.progress),
+                            answered = state.answers.count { it >= 0 },
+                            total = QUESTION_COUNT,
+                        )
+                    }
                 }
             }
         },
