@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Cloudy</string>
+    <string name="app_name">Happy Anxious Cloud</string>
 
     <!-- Questionnaire items, in fixed order. Items 1–6 and 7–12 form two
          groups; the grouping is intentionally never shown as a label. -->
@@ -44,14 +44,14 @@
     <string name="export_title">Export your data</string>
     <string name="export_desc">Save every entry to a file you can store anywhere or move to a new phone.</string>
     <string name="export_button">Export data</string>
-    <string name="export_share_title">Cloudy export</string>
+    <string name="export_share_title">Happy Anxious Cloud export</string>
     <string name="export_failed">Couldn\'t create the export file.</string>
     <string name="import_title">Restore from a file</string>
     <string name="import_desc">Import entries from a file you exported before. Days with the same date are overwritten; other days are kept.</string>
     <string name="import_button">Import data</string>
     <string name="import_success">Imported %1$d days.</string>
     <string name="import_empty">That file had no entries to import.</string>
-    <string name="import_failed">Couldn\'t read that file — it isn\'t a valid Cloudy export.</string>
+    <string name="import_failed">Couldn\'t read that file — it isn\'t a valid Happy Anxious Cloud export.</string>
     <string name="backup_auto_title">Automatic cloud backup</string>
     <string name="backup_auto_desc">This phone also backs up your data to your own Google account when it\'s idle and charging on Wi-Fi. On a new phone, sign in during setup and your history is restored automatically — no file needed.</string>
 

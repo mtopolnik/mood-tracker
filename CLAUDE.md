@@ -15,7 +15,7 @@ No global `gradle`/`kotlinc` — always use the wrapper (Gradle 9.3.1, pinned).
 
 ## Project Overview
 
-**Cloudy** (formerly "Mood Tracker") — a backend-free Android app for a daily
+**Happy Anxious Cloud** (codename "Cloudy"; formerly "Mood Tracker") — a backend-free Android app for a daily
 12-item mood questionnaire (each item 0–3). Items 1–6 sum to an *anxiety* score, 7–12 to a
 *depression* score (each 0–18). Opens on today's questionnaire; every choice is
 persisted immediately (no Save button) while a bottom bar shows the two category
@@ -31,7 +31,13 @@ the conventions of the sibling `grandfather-clock` project.
 
 > **Rename note.** The app was renamed Mood Tracker → **Cloudy**: display name,
 > all `Cloudy*` source symbols, and the `CloudyBackup.FORMAT` tag (`"cloudy"`,
-> safely renamed pre-release). Deliberately **unchanged**: the package
+> safely renamed pre-release). It was then renamed again **Cloudy → "Happy
+> Anxious Cloud"**, but **only the user-visible display name** (the `app_name`
+> string plus the `export_share_title` / `import_failed` strings and the
+> `playstore/` feature graphic): `Cloudy*` source symbols, the `Theme.Cloudy`
+> resource id, and the `CloudyBackup.FORMAT` tag stay as the stable internal
+> codename — the FORMAT tag in particular must never change or existing users'
+> exported files would fail to import. Deliberately **unchanged**: the package
 > `org.mtopol.moodtracker`, `namespace`, and `applicationId` — `applicationId`
 > is the permanent Play Store identity, the package is internal churn. The Room
 > table (`mood_entry`), columns, and DB file (`mood.db`) are also unchanged, so
