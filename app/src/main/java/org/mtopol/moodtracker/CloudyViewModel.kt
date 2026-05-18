@@ -76,12 +76,21 @@ data class HistoryUiState(
     val totalDays: Int = HISTORY_DAYS,
 )
 
+/**
+ * A completed day that carries a free-form note. Surfaced on the Trends chart
+ * as an always-visible pin under the X axis that pops the [text] up on tap.
+ * Only completed (plotted) days qualify, so a pin always sits under real data.
+ */
+data class NoteMarker(val epochDay: Long, val text: String)
+
 data class TrendsUiState(
     val range: ChartRange = ChartRange.MONTH,
     val startEpochDay: Long = 0L,
     val endEpochDay: Long = 0L,
     val anxiety: List<DailyPoint> = emptyList(),
     val depression: List<DailyPoint> = emptyList(),
+    /** Notes for completed days within the window, ascending by day. */
+    val notes: List<NoteMarker> = emptyList(),
     val hasData: Boolean = false,
 )
 
@@ -155,6 +164,12 @@ class CloudyViewModel(app: Application) : AndroidViewModel(app) {
                             window.startEpochDay,
                             window.endEpochDay,
                         ),
+                        // Only completed days are plotted, so deriving notes
+                        // from `complete` keeps every pin anchored to a real
+                        // data point (the window already bounds the range).
+                        notes = complete
+                            .filter { !it.note.isNullOrBlank() }
+                            .map { NoteMarker(it.date.toEpochDay(), it.note!!.trim()) },
                         hasData = complete.isNotEmpty(),
                     )
                 }

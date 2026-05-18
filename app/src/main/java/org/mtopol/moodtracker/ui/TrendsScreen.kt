@@ -4,6 +4,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,20 +14,33 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.GenericShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
+import com.patrykandpatrick.vico.compose.cartesian.CartesianDrawingContext
 import com.patrykandpatrick.vico.compose.cartesian.Zoom
 import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
@@ -39,8 +53,13 @@ import com.patrykandpatrick.vico.compose.cartesian.data.lineSeries
 import com.patrykandpatrick.vico.compose.cartesian.layer.LineCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLine
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
+import com.patrykandpatrick.vico.compose.cartesian.marker.CartesianMarker
+import com.patrykandpatrick.vico.compose.cartesian.marker.CartesianMarkerController
+import com.patrykandpatrick.vico.compose.cartesian.marker.CartesianMarkerVisibilityListener
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.common.Fill
+import com.patrykandpatrick.vico.compose.common.component.ShapeComponent
+import org.mtopol.moodtracker.NoteMarker
 import org.mtopol.moodtracker.R
 import org.mtopol.moodtracker.TrendsUiState
 import org.mtopol.moodtracker.domain.ChartRange
@@ -52,6 +71,15 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private val AxisDateFmt = DateTimeFormatter.ofPattern("MMM d", Locale.getDefault())
+private val NoteDateFmt = DateTimeFormatter.ofPattern("EEE, MMM d, yyyy", Locale.getDefault())
+
+/** Upward caret painted just below the X axis to flag a day that has a note. */
+private val PinShape = GenericShape { size, _ ->
+    moveTo(size.width / 2f, 0f)
+    lineTo(size.width, size.height)
+    lineTo(0f, size.height)
+    close()
+}
 
 @Composable
 fun TrendsScreen(
@@ -85,6 +113,18 @@ fun TrendsScreen(
             LegendSwatch(stringResource(R.string.depression), depressionColor())
         }
 
+        // The pins themselves are the affordance; this caption only appears
+        // when there is at least one note, so it never adds noise to an
+        // all-numbers chart.
+        if (state.notes.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                stringResource(R.string.trends_note_hint),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
         Spacer(Modifier.height(16.dp))
 
         if (!state.hasData) {
@@ -111,10 +151,39 @@ private fun LegendSwatch(label: String, color: Color) {
     }
 }
 
+/**
+ * A minimal Vico [CartesianMarker] that draws nothing but a small caret pin,
+ * centred on the day's column just below the plot. It is used two ways at once:
+ * as the chart's tap [CartesianMarker] (toggle-on-tap) and, via
+ * `persistentMarkers`, as an always-visible pin under every note day. Filtering
+ * by [noteDays] means a tap on a note-less day neither draws a stray pin nor
+ * (see the visibility listener) reveals any text.
+ */
+private class NotePinMarker(
+    private val pin: ShapeComponent,
+    private val noteDays: Set<Long>,
+    private val halfWidthPx: Float,
+    private val heightPx: Float,
+    private val gapPx: Float,
+) : CartesianMarker {
+    override fun drawOverLayers(
+        context: CartesianDrawingContext,
+        targets: List<CartesianMarker.Target>,
+    ) {
+        val top = context.layerBounds.bottom + gapPx
+        targets.forEach { target ->
+            if (target.x.toLong() !in noteDays) return@forEach
+            val cx = target.canvasX
+            pin.draw(context, cx - halfWidthPx, top, cx + halfWidthPx, top + heightPx)
+        }
+    }
+}
+
 @Composable
-private fun MoodChart(state: TrendsUiState) {
+private fun ColumnScope.MoodChart(state: TrendsUiState) {
     val anxColor = anxietyColor()
     val depColor = depressionColor()
+    val pinColor = MaterialTheme.colorScheme.primary
     val modelProducer = remember { CartesianChartModelProducer() }
 
     LaunchedEffect(state.startEpochDay, state.endEpochDay, state.anxiety, state.depression) {
@@ -150,6 +219,43 @@ private fun MoodChart(state: TrendsUiState) {
         }
     }
 
+    val notesByDay = remember(state.notes) { state.notes.associate { it.epochDay to it.text } }
+    val density = LocalDensity.current
+    val notePin = remember(state.notes, pinColor, density) {
+        val halfW = with(density) { 5.dp.toPx() }
+        val h = with(density) { 7.dp.toPx() }
+        val gap = with(density) { 1.dp.toPx() }
+        NotePinMarker(
+            pin = ShapeComponent(fill = Fill(pinColor), shape = PinShape),
+            noteDays = notesByDay.keys,
+            halfWidthPx = halfW,
+            heightPx = h,
+            gapPx = gap,
+        )
+    }
+
+    var selected by remember { mutableStateOf<NoteMarker?>(null) }
+    val markerListener = remember(notesByDay) {
+        object : CartesianMarkerVisibilityListener {
+            // The inline area is empty unless a note day is the active target,
+            // so tapping a note-less day (or toggling the pin off) clears it.
+            private fun resolve(targets: List<CartesianMarker.Target>) {
+                val day = targets.firstOrNull()?.x?.toLong()
+                selected = day?.let { d -> notesByDay[d]?.let { NoteMarker(d, it) } }
+            }
+
+            override fun onShown(marker: CartesianMarker, targets: List<CartesianMarker.Target>) =
+                resolve(targets)
+
+            override fun onUpdated(marker: CartesianMarker, targets: List<CartesianMarker.Target>) =
+                resolve(targets)
+
+            override fun onHidden(marker: CartesianMarker) {
+                selected = null
+            }
+        }
+    }
+
     CartesianChartHost(
         chart = rememberCartesianChart(
             rememberLineCartesianLayer(
@@ -158,6 +264,12 @@ private fun MoodChart(state: TrendsUiState) {
             ),
             startAxis = VerticalAxis.rememberStart(),
             bottomAxis = HorizontalAxis.rememberBottom(valueFormatter = xFormatter),
+            marker = notePin,
+            markerVisibilityListener = markerListener,
+            markerController = CartesianMarkerController.rememberToggleOnTap(),
+            // Always-visible pins: place the same marker at every note day so
+            // its caret is painted under that column even before any tap.
+            persistentMarkers = { _ -> state.notes.forEach { notePin.at(it.epochDay) } },
         ),
         modelProducer = modelProducer,
         // No enter/diff animation: the chart is rebuilt from a fresh
@@ -176,4 +288,70 @@ private fun MoodChart(state: TrendsUiState) {
             .fillMaxWidth()
             .height(280.dp),
     )
+
+    // The note reader: plain text below the chart — no card, border, or
+    // background — so the space is simply absent until a note pin is tapped,
+    // and gone again on toggle-off / tapping elsewhere. weight(1f) lets a long
+    // note scroll within the leftover height instead of overflowing offscreen.
+    selected?.let { note ->
+        // Notes arrive ascending (DAO orders by epochDay); sort defensively so
+        // prev/next is reliable regardless of upstream ordering. When pins are
+        // too crowded to tap individually, these step note-to-note instead.
+        val ordered = remember(state.notes) { state.notes.sortedBy { it.epochDay } }
+        val idx = ordered.indexOfFirst { it.epochDay == note.epochDay }
+
+        Spacer(Modifier.height(12.dp))
+        // Arrows sit side by side so you can step back and forth with the same
+        // thumb, without reaching across the width; the counter trails them.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(
+                onClick = { if (idx > 0) selected = ordered[idx - 1] },
+                enabled = idx > 0,
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.cd_prev_note),
+                )
+            }
+            IconButton(
+                onClick = { if (idx in 0 until ordered.lastIndex) selected = ordered[idx + 1] },
+                enabled = idx in 0 until ordered.lastIndex,
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = stringResource(R.string.cd_next_note),
+                )
+            }
+            if (idx >= 0) {
+                Text(
+                    stringResource(R.string.note_position, idx + 1, ordered.size),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                LocalDate.ofEpochDay(note.epochDay).format(NoteDateFmt),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                note.text,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }

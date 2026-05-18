@@ -36,6 +36,10 @@
     <string name="missed_summary">Missed %1$d of last 30 days</string>
     <string name="all_caught_up">All %1$d days filled in</string>
     <string name="trends_empty">No entries yet — fill in today to start your trend.</string>
+    <string name="trends_note_hint">Tap a marker under the axis to read that day\'s note</string>
+    <string name="cd_prev_note">Previous note</string>
+    <string name="cd_next_note">Next note</string>
+    <string name="note_position">%1$d / %2$d</string>
 
     <string name="manage_subtitle">App info and updates, plus keeping your data safe. Your entries live only on this phone, so keep a copy elsewhere.</string>
     <string name="app_section_title">App</string>
