@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -59,7 +60,6 @@ import com.patrykandpatrick.vico.compose.cartesian.marker.CartesianMarkerVisibil
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.common.Fill
 import com.patrykandpatrick.vico.compose.common.component.ShapeComponent
-import org.mtopol.moodtracker.NoteMarker
 import org.mtopol.moodtracker.R
 import org.mtopol.moodtracker.TrendsUiState
 import org.mtopol.moodtracker.domain.ChartRange
@@ -152,29 +152,45 @@ private fun LegendSwatch(label: String, color: Color) {
 }
 
 /**
- * A minimal Vico [CartesianMarker] that draws nothing but a small caret pin,
- * centred on the day's column just below the plot. It is used two ways at once:
- * as the chart's tap [CartesianMarker] (toggle-on-tap) and, via
- * `persistentMarkers`, as an always-visible pin under every note day. Filtering
- * by [noteDays] means a tap on a note-less day neither draws a stray pin nor
- * (see the visibility listener) reveals any text.
+ * The note marker, drawn over the layers (the phase Vico reliably invokes for
+ * persistent markers). For every note day it paints a small caret just below
+ * the plot; for the one [selectedDay] it additionally paints a thin vertical
+ * hairline spanning the plot in the same colour — a "playhead" tying the open
+ * note to its exact column, which matters precisely when the pins are too
+ * crowded to tell apart.
+ *
+ * Used both as the tap [CartesianMarker] (toggle-on-tap) and, via
+ * `persistentMarkers`, at every note day; filtering by [noteDays] keeps a tap
+ * on a note-less day from drawing a stray caret. The hairline lives here rather
+ * than in a second marker because Vico's persistent-marker map is keyed by x —
+ * a separate line marker would collide with the caret on the selected day's
+ * column. Keying the remembered instance on [selectedDay] rebuilds the chart
+ * (a `rememberCartesianChart` key) so the hairline repaints at the new column.
  */
 private class NotePinMarker(
     private val pin: ShapeComponent,
+    private val line: ShapeComponent,
     private val noteDays: Set<Long>,
+    private val selectedDay: Long?,
     private val halfWidthPx: Float,
     private val heightPx: Float,
     private val gapPx: Float,
+    private val lineHalfPx: Float,
 ) : CartesianMarker {
     override fun drawOverLayers(
         context: CartesianDrawingContext,
         targets: List<CartesianMarker.Target>,
     ) {
-        val top = context.layerBounds.bottom + gapPx
+        val bounds = context.layerBounds
+        val pinTop = bounds.bottom + gapPx
         targets.forEach { target ->
-            if (target.x.toLong() !in noteDays) return@forEach
+            val day = target.x.toLong()
+            if (day !in noteDays) return@forEach
             val cx = target.canvasX
-            pin.draw(context, cx - halfWidthPx, top, cx + halfWidthPx, top + heightPx)
+            if (day == selectedDay) {
+                line.draw(context, cx - lineHalfPx, bounds.top, cx + lineHalfPx, bounds.bottom)
+            }
+            pin.draw(context, cx - halfWidthPx, pinTop, cx + halfWidthPx, pinTop + heightPx)
         }
     }
 }
@@ -221,27 +237,37 @@ private fun ColumnScope.MoodChart(state: TrendsUiState) {
 
     val notesByDay = remember(state.notes) { state.notes.associate { it.epochDay to it.text } }
     val density = LocalDensity.current
-    val notePin = remember(state.notes, pinColor, density) {
+
+    // Only the selected day is held, never the resolved note: the displayed
+    // note is derived from the *current* window below, so a range change that
+    // drops the day naturally closes the reader (see `idx`). It is also a
+    // `notePin` key, so a selection change rebuilds the chart and the hairline
+    // repaints at the new column.
+    var selectedDay by remember { mutableStateOf<Long?>(null) }
+
+    val notePin = remember(state.notes, pinColor, density, selectedDay) {
         val halfW = with(density) { 5.dp.toPx() }
         val h = with(density) { 7.dp.toPx() }
         val gap = with(density) { 1.dp.toPx() }
+        val lineHalf = with(density) { 0.75.dp.toPx() }
         NotePinMarker(
             pin = ShapeComponent(fill = Fill(pinColor), shape = PinShape),
+            line = ShapeComponent(fill = Fill(pinColor), shape = RectangleShape),
             noteDays = notesByDay.keys,
+            selectedDay = selectedDay,
             halfWidthPx = halfW,
             heightPx = h,
             gapPx = gap,
+            lineHalfPx = lineHalf,
         )
     }
-
-    var selected by remember { mutableStateOf<NoteMarker?>(null) }
     val markerListener = remember(notesByDay) {
         object : CartesianMarkerVisibilityListener {
             // The inline area is empty unless a note day is the active target,
             // so tapping a note-less day (or toggling the pin off) clears it.
             private fun resolve(targets: List<CartesianMarker.Target>) {
                 val day = targets.firstOrNull()?.x?.toLong()
-                selected = day?.let { d -> notesByDay[d]?.let { NoteMarker(d, it) } }
+                selectedDay = if (day != null && notesByDay.containsKey(day)) day else null
             }
 
             override fun onShown(marker: CartesianMarker, targets: List<CartesianMarker.Target>) =
@@ -251,7 +277,7 @@ private fun ColumnScope.MoodChart(state: TrendsUiState) {
                 resolve(targets)
 
             override fun onHidden(marker: CartesianMarker) {
-                selected = null
+                selectedDay = null
             }
         }
     }
@@ -267,8 +293,10 @@ private fun ColumnScope.MoodChart(state: TrendsUiState) {
             marker = notePin,
             markerVisibilityListener = markerListener,
             markerController = CartesianMarkerController.rememberToggleOnTap(),
-            // Always-visible pins: place the same marker at every note day so
-            // its caret is painted under that column even before any tap.
+            // Always-visible pins: place the marker at every note day so its
+            // caret is painted there even before any tap. The same instance
+            // also draws the hairline at `selectedDay` (it carries it), so the
+            // playhead tracks taps *and* prev/next and clears on a range change.
             persistentMarkers = { _ -> state.notes.forEach { notePin.at(it.epochDay) } },
         ),
         modelProducer = modelProducer,
@@ -289,17 +317,21 @@ private fun ColumnScope.MoodChart(state: TrendsUiState) {
             .height(280.dp),
     )
 
+    // Notes arrive ascending (DAO orders by epochDay); sorted defensively so
+    // prev/next is reliable regardless of upstream ordering.
+    val ordered = remember(state.notes) { state.notes.sortedBy { it.epochDay } }
+    // Resolve the open note against the *current* window. A range change swaps
+    // `state.notes`; if the selected day is no longer plotted it isn't in
+    // `ordered`, `idx` is -1, and the reader closes with its now-absent pin —
+    // never a note stranded from a range that's no longer shown.
+    val idx = selectedDay?.let { d -> ordered.indexOfFirst { it.epochDay == d } } ?: -1
+
     // The note reader: plain text below the chart — no card, border, or
     // background — so the space is simply absent until a note pin is tapped,
-    // and gone again on toggle-off / tapping elsewhere. weight(1f) lets a long
-    // note scroll within the leftover height instead of overflowing offscreen.
-    selected?.let { note ->
-        // Notes arrive ascending (DAO orders by epochDay); sort defensively so
-        // prev/next is reliable regardless of upstream ordering. When pins are
-        // too crowded to tap individually, these step note-to-note instead.
-        val ordered = remember(state.notes) { state.notes.sortedBy { it.epochDay } }
-        val idx = ordered.indexOfFirst { it.epochDay == note.epochDay }
-
+    // and gone again on toggle-off / tapping elsewhere / range change. weight(1f)
+    // lets a long note scroll the leftover height instead of overflowing.
+    if (idx >= 0) {
+        val note = ordered[idx]
         Spacer(Modifier.height(12.dp))
         // Arrows sit side by side so you can step back and forth with the same
         // thumb, without reaching across the width; the counter trails them.
@@ -309,7 +341,7 @@ private fun ColumnScope.MoodChart(state: TrendsUiState) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(
-                onClick = { if (idx > 0) selected = ordered[idx - 1] },
+                onClick = { if (idx > 0) selectedDay = ordered[idx - 1].epochDay },
                 enabled = idx > 0,
             ) {
                 Icon(
@@ -318,22 +350,20 @@ private fun ColumnScope.MoodChart(state: TrendsUiState) {
                 )
             }
             IconButton(
-                onClick = { if (idx in 0 until ordered.lastIndex) selected = ordered[idx + 1] },
-                enabled = idx in 0 until ordered.lastIndex,
+                onClick = { if (idx < ordered.lastIndex) selectedDay = ordered[idx + 1].epochDay },
+                enabled = idx < ordered.lastIndex,
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = stringResource(R.string.cd_next_note),
                 )
             }
-            if (idx >= 0) {
-                Text(
-                    stringResource(R.string.note_position, idx + 1, ordered.size),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
+            Text(
+                stringResource(R.string.note_position, idx + 1, ordered.size),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 8.dp),
+            )
         }
         Column(
             modifier = Modifier
