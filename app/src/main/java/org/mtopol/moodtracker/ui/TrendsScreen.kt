@@ -202,21 +202,16 @@ private fun ColumnScope.MoodChart(state: TrendsUiState) {
     val pinColor = MaterialTheme.colorScheme.primary
     val modelProducer = remember { CartesianChartModelProducer() }
 
-    // Y values are negated so the chart flips vertically: 0 (best) sits at the
-    // top, MAX_GROUP_SCORE (worst) at the bottom. "Up = better" matches the
-    // everyday intuition for graphs, even though the underlying scale is a
-    // severity score where higher is worse. The Y-axis label formatter below
-    // re-flips the sign so the gridlines still read 0..MAX_GROUP_SCORE.
     LaunchedEffect(state.startEpochDay, state.endEpochDay, state.anxiety, state.depression) {
         val anx = state.anxiety.filter { it.value != null }
         val dep = state.depression.filter { it.value != null }
         modelProducer.runTransaction {
             lineSeries {
                 if (anx.isNotEmpty()) {
-                    series(anx.map { it.epochDay }, anx.map { -it.value!! })
+                    series(anx.map { it.epochDay }, anx.map { it.value!! })
                 }
                 if (dep.isNotEmpty()) {
-                    series(dep.map { it.epochDay }, dep.map { -it.value!! })
+                    series(dep.map { it.epochDay }, dep.map { it.value!! })
                 }
             }
         }
@@ -230,17 +225,14 @@ private fun ColumnScope.MoodChart(state: TrendsUiState) {
         CartesianLayerRangeProvider.fixed(
             minX = state.startEpochDay.toDouble(),
             maxX = state.endEpochDay.toDouble(),
-            minY = -MAX_GROUP_SCORE.toDouble(),
-            maxY = 0.0,
+            minY = 0.0,
+            maxY = MAX_GROUP_SCORE.toDouble(),
         )
     }
     val xFormatter = remember {
         CartesianValueFormatter { _, value, _ ->
             LocalDate.ofEpochDay(value.toLong()).format(AxisDateFmt)
         }
-    }
-    val yFormatter = remember {
-        CartesianValueFormatter { _, value, _ -> (-value.toInt()).toString() }
     }
 
     val notesByDay = remember(state.notes) { state.notes.associate { it.epochDay to it.text } }
@@ -296,7 +288,7 @@ private fun ColumnScope.MoodChart(state: TrendsUiState) {
                 lineProvider = lineProvider,
                 rangeProvider = rangeProvider,
             ),
-            startAxis = VerticalAxis.rememberStart(valueFormatter = yFormatter),
+            startAxis = VerticalAxis.rememberStart(),
             bottomAxis = HorizontalAxis.rememberBottom(valueFormatter = xFormatter),
             marker = notePin,
             markerVisibilityListener = markerListener,
